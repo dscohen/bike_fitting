@@ -24,6 +24,23 @@ export function Section({
   );
 }
 
+/** Small "?" badge that reveals an explanation on hover (pure CSS, no JS state). */
+export function HelpTip({ text }: { text: string }) {
+  return (
+    <span className="group relative ml-1 inline-flex items-center">
+      <span
+        tabIndex={0}
+        className="flex h-3.5 w-3.5 shrink-0 cursor-help items-center justify-center rounded-full border border-slate-300 text-[9px] font-bold leading-none text-slate-400 hover:border-slate-400 hover:text-slate-600 focus:border-slate-400 focus:text-slate-600 focus:outline-none"
+      >
+        ?
+      </span>
+      <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 w-52 -translate-x-1/2 rounded bg-slate-800 px-2 py-1.5 text-[10px] font-normal normal-case leading-snug text-white opacity-0 shadow-lg transition-opacity duration-100 group-hover:opacity-100 group-focus-within:opacity-100">
+        {text}
+      </span>
+    </span>
+  );
+}
+
 export function NumberField({
   label,
   value,
@@ -31,6 +48,7 @@ export function NumberField({
   unit = "mm",
   step = 1,
   placeholder,
+  help,
 }: {
   label: string;
   value: number | undefined;
@@ -38,10 +56,14 @@ export function NumberField({
   unit?: string;
   step?: number;
   placeholder?: string;
+  help?: string;
 }) {
   return (
     <label className="flex flex-col gap-1 text-xs">
-      <span className="text-slate-600">{label}</span>
+      <span className="flex items-center text-slate-600">
+        {label}
+        {help && <HelpTip text={help} />}
+      </span>
       <div className="flex items-center rounded border border-slate-300 focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500">
         <input
           type="number"

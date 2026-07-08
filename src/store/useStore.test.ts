@@ -153,3 +153,48 @@ describe("useStore — alphabetical sort", () => {
     expect(riderNames).toEqual(["Alpha Rider", "Zebra Rider"]);
   });
 });
+
+describe("useStore — removeBike", () => {
+  const newBike = (name: string) => ({
+    name,
+    reach: 400,
+    stack: 550,
+    headTubeAngle: 73,
+    seatTubeAngle: 73,
+  });
+
+  it("removes the bike itself", async () => {
+    const { useStore } = await import("./useStore");
+    const id = useStore.getState().addBike(newBike("Remove-Test Bike"));
+    useStore.getState().removeBike(id);
+    expect(useStore.getState().bikes.find((b) => b.id === id)).toBeUndefined();
+  });
+
+  it("cascades to remove scenarios that reference the deleted bike", async () => {
+    const { useStore } = await import("./useStore");
+    const riderId = useStore.getState().riders[0].id;
+    const bikeId = useStore.getState().addBike(newBike("Cascade-Test Bike"));
+    const scenarioId = useStore.getState().addScenario({
+      name: "Cascade-Test Scenario",
+      riderId,
+      bikeId,
+      adjust: { dropDelta: 0, reachDelta: 0, saddleHeightDelta: 0 },
+    });
+
+    useStore.getState().removeBike(bikeId);
+
+    expect(
+      useStore.getState().scenarios.find((s) => s.id === scenarioId)
+    ).toBeUndefined();
+  });
+
+  it("removes the bike from comparisonBikeIds", async () => {
+    const { useStore } = await import("./useStore");
+    const bikeId = useStore.getState().addBike(newBike("Comparison-Test Bike"));
+    useStore.getState().toggleComparisonBike(bikeId);
+    expect(useStore.getState().comparisonBikeIds).toContain(bikeId);
+
+    useStore.getState().removeBike(bikeId);
+    expect(useStore.getState().comparisonBikeIds).not.toContain(bikeId);
+  });
+});

@@ -22,6 +22,7 @@ export default function Toolbar({ view, onView }: Props) {
     updateScenario,
     addBike,
     duplicateBike,
+    removeBike,
     addRider,
     exportJSON,
     importJSON,
@@ -77,6 +78,17 @@ export default function Toolbar({ view, onView }: Props) {
     if (!active?.bikeId) return;
     const id = duplicateBike(active.bikeId);
     if (id) updateScenario(active.id, { bikeId: id });
+  };
+
+  const deleteActiveBike = () => {
+    if (!active?.bikeId) return;
+    const bike = bikes.find((b) => b.id === active.bikeId);
+    const affected = scenarios.filter((s) => s.bikeId === active.bikeId).length;
+    const warning =
+      affected > 1
+        ? `Delete "${bike?.name}"? This also deletes ${affected} scenarios that use it.`
+        : `Delete "${bike?.name}"?`;
+    if (window.confirm(warning)) removeBike(active.bikeId);
   };
 
   const newRider = () => {
@@ -162,6 +174,15 @@ export default function Toolbar({ view, onView }: Props) {
       >
         duplicate
       </Button>
+      {active?.bikeId && bikes.length > 1 && (
+        <Button
+          variant="danger"
+          onClick={deleteActiveBike}
+          title="Delete the selected bike"
+        >
+          delete
+        </Button>
+      )}
 
       <div className="ml-auto flex items-center gap-2">
         <div className="flex overflow-hidden rounded border border-slate-300">
