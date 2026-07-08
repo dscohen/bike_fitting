@@ -1,0 +1,245 @@
+// Global app state: the fitter's library of bikes, riders, custom parts, and
+// scenarios. Auto-persisted to localStorage; exportable/importable as JSON.
+
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type {
+  Bike,
+  Rider,
+  Stem,
+  Bar,
+  Seatpost,
+  Scenario,
+} from "../lib/types";
+
+const uid = () =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+
+export interface AppData {
+  bikes: Bike[];
+  riders: Rider[];
+  customStems: Stem[];
+  customBars: Bar[];
+  customSeatposts: Seatpost[];
+  scenarios: Scenario[];
+  activeScenarioId?: string;
+  comparisonBikeIds: string[]; // bikes pinned into the comparison view
+}
+
+export interface AppState extends AppData {
+  // Bikes
+  addBike: (bike: Omit<Bike, "id">) => string;
+  updateBike: (id: string, patch: Partial<Bike>) => void;
+  removeBike: (id: string) => void;
+  // Riders
+  addRider: (rider: Omit<Rider, "id">) => string;
+  updateRider: (id: string, patch: Partial<Rider>) => void;
+  removeRider: (id: string) => void;
+  // Custom parts
+  addStem: (stem: Omit<Stem, "id">) => void;
+  addBar: (bar: Omit<Bar, "id">) => void;
+  addSeatpost: (post: Omit<Seatpost, "id">) => void;
+  // Scenarios
+  addScenario: (s: Omit<Scenario, "id">) => string;
+  updateScenario: (id: string, patch: Partial<Scenario>) => void;
+  removeScenario: (id: string) => void;
+  setActiveScenario: (id: string | undefined) => void;
+  updateAdjust: (id: string, patch: Partial<Scenario["adjust"]>) => void;
+  // Comparison
+  toggleComparisonBike: (bikeId: string) => void;
+  // Persistence
+  exportJSON: () => string;
+  importJSON: (json: string) => void;
+  resetAll: () => void;
+}
+
+// Seed content so a first-time user has something to look at.
+const seedBikes: Bike[] = [
+  {
+    id: "seed-bike-1",
+    name: "Endurance 56",
+    reach: 383,
+    stack: 573,
+    headTubeAngle: 72.5,
+    seatTubeAngle: 73.5,
+  },
+  {
+    id: "seed-bike-2",
+    name: "Race 56",
+    reach: 390,
+    stack: 553,
+    headTubeAngle: 73,
+    seatTubeAngle: 73.5,
+  },
+];
+
+const seedRiders: Rider[] = [
+  {
+    id: "seed-rider-1",
+    name: "Sample rider",
+    fit: {
+      saddleHeight: 720,
+      saddleSetback: 90,
+      handRef: "hood",
+      hoodX: 560,
+      hoodY: 590,
+    },
+  },
+];
+
+const initialData: AppData = {
+  bikes: seedBikes,
+  riders: seedRiders,
+  customStems: [],
+  customBars: [],
+  customSeatposts: [],
+  scenarios: [
+    {
+      id: "seed-scenario-1",
+      name: "Sample rider on Endurance 56",
+      riderId: "seed-rider-1",
+      bikeId: "seed-bike-1",
+      adjust: { dropDelta: 0, reachDelta: 0, saddleHeightDelta: 0 },
+    },
+  ],
+  activeScenarioId: "seed-scenario-1",
+  comparisonBikeIds: [],
+};
+
+export const useStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      ...initialData,
+
+      addBike: (bike) => {
+        const id = uid();
+        set((s) => ({ bikes: [...s.bikes, { ...bike, id }] }));
+        return id;
+      },
+      updateBike: (id, patch) =>
+        set((s) => ({
+          bikes: s.bikes.map((b) => (b.id === id ? { ...b, ...patch } : b)),
+        })),
+      removeBike: (id) =>
+        set((s) => ({
+          bikes: s.bikes.filter((b) => b.id !== id),
+          scenarios: s.scenarios.filter((sc) => sc.bikeId !== id),
+          comparisonBikeIds: s.comparisonBikeIds.filter((b) => b !== id),
+        })),
+
+      addRider: (rider) => {
+        const id = uid();
+        set((s) => ({ riders: [...s.riders, { ...rider, id }] }));
+        return id;
+      },
+      updateRider: (id, patch) =>
+        set((s) => ({
+          riders: s.riders.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+        })),
+      removeRider: (id) =>
+        set((s) => ({
+          riders: s.riders.filter((r) => r.id !== id),
+          scenarios: s.scenarios.filter((sc) => sc.riderId !== id),
+        })),
+
+      addStem: (stem) =>
+        set((s) => ({
+          customStems: [...s.customStems, { ...stem, id: uid(), custom: true }],
+        })),
+      addBar: (bar) =>
+        set((s) => ({
+          customBars: [...s.customBars, { ...bar, id: uid(), custom: true }],
+        })),
+      addSeatpost: (post) =>
+        set((s) => ({
+          customSeatposts: [
+            ...s.customSeatposts,
+            { ...post, id: uid(), custom: true },
+          ],
+        })),
+
+      addScenario: (sc) => {
+        const id = uid();
+        set((s) => ({
+          scenarios: [...s.scenarios, { ...sc, id }],
+          activeScenarioId: id,
+        }));
+        return id;
+      },
+      updateScenario: (id, patch) =>
+        set((s) => ({
+          scenarios: s.scenarios.map((sc) =>
+            sc.id === id ? { ...sc, ...patch } : sc
+          ),
+        })),
+      removeScenario: (id) =>
+        set((s) => ({
+          scenarios: s.scenarios.filter((sc) => sc.id !== id),
+          activeScenarioId:
+            s.activeScenarioId === id ? undefined : s.activeScenarioId,
+        })),
+      setActiveScenario: (id) => set({ activeScenarioId: id }),
+      updateAdjust: (id, patch) =>
+        set((s) => ({
+          scenarios: s.scenarios.map((sc) =>
+            sc.id === id ? { ...sc, adjust: { ...sc.adjust, ...patch } } : sc
+          ),
+        })),
+
+      toggleComparisonBike: (bikeId) =>
+        set((s) => ({
+          comparisonBikeIds: s.comparisonBikeIds.includes(bikeId)
+            ? s.comparisonBikeIds.filter((b) => b !== bikeId)
+            : [...s.comparisonBikeIds, bikeId],
+        })),
+
+      exportJSON: () => {
+        const {
+          bikes,
+          riders,
+          customStems,
+          customBars,
+          customSeatposts,
+          scenarios,
+        } = get();
+        return JSON.stringify(
+          {
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            data: {
+              bikes,
+              riders,
+              customStems,
+              customBars,
+              customSeatposts,
+              scenarios,
+            },
+          },
+          null,
+          2
+        );
+      },
+      importJSON: (json) => {
+        const parsed = JSON.parse(json);
+        const d = parsed.data ?? parsed;
+        set({
+          bikes: d.bikes ?? [],
+          riders: d.riders ?? [],
+          customStems: d.customStems ?? [],
+          customBars: d.customBars ?? [],
+          customSeatposts: d.customSeatposts ?? [],
+          scenarios: d.scenarios ?? [],
+          activeScenarioId: (d.scenarios ?? [])[0]?.id,
+          comparisonBikeIds: [],
+        });
+      },
+      resetAll: () => set({ ...initialData }),
+    }),
+    {
+      name: "bikegeo",
+      version: 1,
+    }
+  )
+);
