@@ -17,6 +17,18 @@ const uid = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
+/** "Endurance 56" -> "Endurance 56 (copy)" -> "Endurance 56 (copy 2)" -> ... */
+function nextCopyName(name: string): string {
+  const m = name.match(/^(.*) \(copy(?: (\d+))?\)$/);
+  if (!m) return `${name} (copy)`;
+  const n = m[2] ? parseInt(m[2], 10) + 1 : 2;
+  return `${m[1]} (copy ${n})`;
+}
+
+/** Keeps bike/rider lists (and their dropdowns) alphabetical at all times. */
+const byName = <T extends { name: string }>(a: T, b: T) =>
+  a.name.localeCompare(b.name);
+
 export interface AppData {
   bikes: Bike[];
   riders: Rider[];
@@ -31,6 +43,7 @@ export interface AppData {
 export interface AppState extends AppData {
   // Bikes
   addBike: (bike: Omit<Bike, "id">) => string;
+  duplicateBike: (id: string) => string | undefined;
   updateBike: (id: string, patch: Partial<Bike>) => void;
   removeBike: (id: string) => void;
   // Riders
@@ -90,8 +103,8 @@ const seedRiders: Rider[] = [
 ];
 
 const initialData: AppData = {
-  bikes: seedBikes,
-  riders: seedRiders,
+  bikes: [...seedBikes].sort(byName),
+  riders: [...seedRiders].sort(byName),
   customStems: [],
   customBars: [],
   customSeatposts: [],
@@ -115,12 +128,26 @@ export const useStore = create<AppState>()(
 
       addBike: (bike) => {
         const id = uid();
-        set((s) => ({ bikes: [...s.bikes, { ...bike, id }] }));
+        set((s) => ({ bikes: [...s.bikes, { ...bike, id }].sort(byName) }));
         return id;
+      },
+      duplicateBike: (id) => {
+        const original = get().bikes.find((b) => b.id === id);
+        if (!original) return undefined;
+        const newId = uid();
+        set((s) => ({
+          bikes: [
+            ...s.bikes,
+            { ...original, id: newId, name: nextCopyName(original.name) },
+          ].sort(byName),
+        }));
+        return newId;
       },
       updateBike: (id, patch) =>
         set((s) => ({
-          bikes: s.bikes.map((b) => (b.id === id ? { ...b, ...patch } : b)),
+          bikes: s.bikes
+            .map((b) => (b.id === id ? { ...b, ...patch } : b))
+            .sort(byName),
         })),
       removeBike: (id) =>
         set((s) => ({
@@ -131,12 +158,14 @@ export const useStore = create<AppState>()(
 
       addRider: (rider) => {
         const id = uid();
-        set((s) => ({ riders: [...s.riders, { ...rider, id }] }));
+        set((s) => ({ riders: [...s.riders, { ...rider, id }].sort(byName) }));
         return id;
       },
       updateRider: (id, patch) =>
         set((s) => ({
-          riders: s.riders.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+          riders: s.riders
+            .map((r) => (r.id === id ? { ...r, ...patch } : r))
+            .sort(byName),
         })),
       removeRider: (id) =>
         set((s) => ({
@@ -225,8 +254,8 @@ export const useStore = create<AppState>()(
         const parsed = JSON.parse(json);
         const d = parsed.data ?? parsed;
         set({
-          bikes: d.bikes ?? [],
-          riders: d.riders ?? [],
+          bikes: (d.bikes ?? []).sort(byName),
+          riders: (d.riders ?? []).sort(byName),
           customStems: d.customStems ?? [],
           customBars: d.customBars ?? [],
           customSeatposts: d.customSeatposts ?? [],

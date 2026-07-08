@@ -107,6 +107,43 @@ describe("resolveBars", () => {
     expect(bars).toHaveLength(1);
     expect(bars[0].reach).toBe(60);
   });
+
+  it("excludeRisers drops riser bars from the full-catalog search", () => {
+    const bars = resolveBars(catalog, riderNoBar, { excludeRisers: true });
+    expect(bars.length).toBeLessThan(catalog.bars.length);
+    expect(bars.every((b) => (b.hoodRise ?? 0) === 0)).toBe(true);
+    expect(bars.some((b) => b.id === "bar-redshift-top-shelf-70")).toBe(false);
+  });
+
+  it("excludeRisers zeroes the borrowed hoodRise under lockReach", () => {
+    const riserRider: Rider = {
+      id: "r4",
+      name: "R4",
+      fit: { saddleHeight: 720 },
+      currentBarId: "bar-redshift-top-shelf-70",
+    };
+    const bars = resolveBars(catalog, riserRider, {
+      lockReach: 95,
+      excludeRisers: true,
+    });
+    expect(bars[0].reach).toBe(95);
+    expect(bars[0].hoodRise).toBe(0);
+  });
+
+  it("onlyRidersBar falls back to the riser-filtered pool when the rider's own bar is a riser", () => {
+    const riserRider: Rider = {
+      id: "r5",
+      name: "R5",
+      fit: { saddleHeight: 720 },
+      currentBarId: "bar-redshift-top-shelf-70",
+    };
+    const bars = resolveBars(catalog, riserRider, {
+      onlyRidersBar: true,
+      excludeRisers: true,
+    });
+    expect(bars.length).toBeGreaterThan(1); // fell back to the filtered pool
+    expect(bars.every((b) => (b.hoodRise ?? 0) === 0)).toBe(true);
+  });
 });
 
 describe("computeScenario — bar constraints", () => {

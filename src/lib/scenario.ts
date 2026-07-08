@@ -15,13 +15,20 @@ import { resolveFitTarget, FitInputError } from "./convert";
 import { solvePermutations, type SolverCatalog } from "./solver";
 import { solveSaddle } from "./geometry";
 
+/** A bar with built-in rise (e.g. Redshift Top Shelf, Surly Truck Stop). */
+export function isRiserBar(bar: Bar): boolean {
+  return (bar.hoodRise ?? 0) > 0;
+}
+
 /**
  * Apply a scenario's bar constraint to the catalog before solving:
- *  - `lockReach` wins if set: search only a single synthetic bar of that
- *    reach (borrowing drop/hoodRise from the rider's current bar, if any, so
- *    a locked-reach search still reflects a riser bar's rise).
- *  - else `onlyRidersBar` restricts the search to rider.currentBarId.
- *  - else the full catalog is searched (previous default behavior).
+ *  - `excludeRisers` filters out riser bars from the search pool first.
+ *  - `lockReach` wins over the rest: search only a single synthetic bar of
+ *    that reach (borrowing drop/hoodRise from the rider's current bar, if
+ *    any — unless `excludeRisers` is set, in which case rise isn't borrowed).
+ *  - else `onlyRidersBar` restricts the search to rider.currentBarId, falling
+ *    back to the (possibly riser-filtered) pool if that bar isn't in it.
+ *  - else the (possibly riser-filtered) pool is searched in full.
  * A no-op in clamp mode, since solvePermutations ignores bars entirely there.
  */
 export function resolveBars(
@@ -40,16 +47,23 @@ export function resolveBars(
         name: `Locked reach (${constraint.lockReach}mm)`,
         reach: constraint.lockReach,
         drop: ridersBar?.drop ?? 0,
-        hoodRise: ridersBar?.hoodRise ?? 0,
+        hoodRise: constraint.excludeRisers ? 0 : ridersBar?.hoodRise ?? 0,
       },
     ];
   }
 
+  const pool = constraint?.excludeRisers
+    ? catalog.bars.filter((b) => !isRiserBar(b))
+    : catalog.bars;
+
   if (constraint?.onlyRidersBar) {
-    return ridersBar ? [ridersBar] : catalog.bars;
+    const barInPool = ridersBar && pool.some((b) => b.id === ridersBar.id)
+      ? ridersBar
+      : undefined;
+    return barInPool ? [barInPool] : pool;
   }
 
-  return catalog.bars;
+  return pool;
 }
 
 /** Apply live-adjust deltas on top of a rider's resolved fit target. */

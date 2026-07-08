@@ -169,5 +169,6 @@ export interface Scenario {
   barConstraint?: {
     onlyRidersBar?: boolean; // restrict the search to rider.currentBarId
     lockReach?: number; // mm — override to a single synthetic bar of this reach
+    excludeRisers?: boolean; // drop bars with built-in rise (hoodRise > 0) from the search
   };
 }

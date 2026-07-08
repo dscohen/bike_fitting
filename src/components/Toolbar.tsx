@@ -21,6 +21,7 @@ export default function Toolbar({ view, onView }: Props) {
     removeScenario,
     updateScenario,
     addBike,
+    duplicateBike,
     addRider,
     exportJSON,
     importJSON,
@@ -70,6 +71,12 @@ export default function Toolbar({ view, onView }: Props) {
       seatTubeAngle: 73.5,
     });
     if (active) updateScenario(active.id, { bikeId: id });
+  };
+
+  const duplicateActiveBike = () => {
+    if (!active?.bikeId) return;
+    const id = duplicateBike(active.bikeId);
+    if (id) updateScenario(active.id, { bikeId: id });
   };
 
   const newRider = () => {
@@ -145,8 +152,15 @@ export default function Toolbar({ view, onView }: Props) {
           ))}
         </select>
       </label>
-      <Button variant="ghost" onClick={newBike}>
+      <Button variant="ghost" onClick={newBike} title="Add a new bike">
         +
+      </Button>
+      <Button
+        variant="ghost"
+        onClick={duplicateActiveBike}
+        title="Duplicate the selected bike (e.g. same model, different size)"
+      >
+        duplicate
       </Button>
 
       <div className="ml-auto flex items-center gap-2">

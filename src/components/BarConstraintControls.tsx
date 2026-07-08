@@ -22,6 +22,7 @@ export default function BarConstraintControls({
   if (mode === "clamp") return null;
 
   const onlyRidersBar = constraint?.onlyRidersBar ?? false;
+  const excludeRisers = constraint?.excludeRisers ?? false;
   const lockReach = constraint?.lockReach;
 
   return (
@@ -43,6 +44,24 @@ export default function BarConstraintControls({
               Set a current bar in Rider fit to enable this.
             </span>
           )}
+        </span>
+      </label>
+
+      <label className="mt-2 flex items-start gap-2 text-xs text-slate-600">
+        <input
+          type="checkbox"
+          className="mt-0.5 accent-sky-600"
+          checked={excludeRisers}
+          onChange={(e) =>
+            onChange({ ...constraint, excludeRisers: e.target.checked })
+          }
+        />
+        <span>
+          No riser bars
+          <span className="block text-[10px] text-slate-400">
+            Exclude bars with built-in rise (Redshift Top Shelf, Surly Truck
+            Stop, Control Tech CLS Gravel Riser).
+          </span>
         </span>
       </label>
 
