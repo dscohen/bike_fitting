@@ -45,4 +45,18 @@ export const DEFAULT_BARS: Bar[] = [
     drop: 115,
     hoodRise: 30,
   },
+  {
+    id: "bar-specialized-hover-alloy",
+    name: "Specialized Hover Alloy (15mm rise + flare)",
+    reach: 70,
+    drop: 103,
+    hoodRise: 15,
+  },
+  {
+    id: "bar-specialized-hover-expert",
+    name: "Specialized Hover Expert Alloy (15mm rise)",
+    reach: 75,
+    drop: 123,
+    hoodRise: 15,
+  },
 ];

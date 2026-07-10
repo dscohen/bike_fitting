@@ -77,7 +77,10 @@ export default function ComparisonView() {
         {shown.map((bike) => {
           const c = computeScenario(bike, rider, NO_ADJUST, catalog, seatposts);
           const best = c.permutations[0];
-          const feasible = !!best?.feasible && !!c.saddle?.feasible;
+          const feasible =
+            !!best?.feasible &&
+            !!c.saddle?.feasible &&
+            (c.seatpostInsertion?.feasible ?? true);
           return (
             <div
               key={bike.id}
@@ -129,6 +132,9 @@ export default function ComparisonView() {
                   <div className="mt-1 space-y-1">
                     <FlagList flags={best.flags} />
                     {c.saddle && <FlagList flags={c.saddle.flags} />}
+                    {c.seatpostInsertion && (
+                      <FlagList flags={c.seatpostInsertion.flags} />
+                    )}
                   </div>
                 </div>
               ) : (

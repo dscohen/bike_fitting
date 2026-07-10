@@ -188,3 +188,53 @@ describe("computeScenario — bar constraints", () => {
     for (const p of c.permutations) expect(p.bar?.reach).toBe(90);
   });
 });
+
+describe("computeScenario — seatpost insertion", () => {
+  const baseBike: Bike = {
+    id: "b2",
+    name: "Test frame",
+    reach: 383,
+    stack: 565,
+    headTubeAngle: 73,
+    seatTubeAngle: 73.5,
+  };
+  const rider: Rider = {
+    id: "r2",
+    name: "R2",
+    fit: { saddleHeight: 720, saddleSetback: 90, hoodX: 555, hoodY: 615 },
+  };
+
+  it("omits the check when the bike has no seat tube length set", () => {
+    const c = computeScenario(baseBike, rider, NO_ADJUST, catalog, DEFAULT_SEATPOSTS);
+    expect(c.seatpostInsertion).toBeUndefined();
+  });
+
+  it("runs the check against the recommended post when seat tube length is set", () => {
+    const bike: Bike = { ...baseBike, seatTubeLength: 480 };
+    const c = computeScenario(bike, rider, NO_ADJUST, catalog, DEFAULT_SEATPOSTS);
+    expect(c.seatpostInsertion).toBeDefined();
+    expect(c.seatpostInsertion!.requiredExposedLength).toBeCloseTo(240, 5);
+    expect(c.seatpostInsertion!.post).toBeDefined();
+    expect(c.seatpostInsertion!.feasible).toBe(true);
+  });
+
+  it("reflects the live-adjust saddle height delta, not just the saved fit", () => {
+    const bike: Bike = { ...baseBike, seatTubeLength: 480 };
+    const adjust = { dropDelta: 0, reachDelta: 0, saddleHeightDelta: 30 };
+    const c = computeScenario(bike, rider, adjust, catalog, DEFAULT_SEATPOSTS);
+    // 720 + 30 - 480 = 270mm required exposure, not the un-adjusted 240mm.
+    expect(c.seatpostInsertion!.requiredExposedLength).toBeCloseTo(270, 5);
+  });
+
+  it("flags a frame whose seat tube leaves too little room to insert the post safely", () => {
+    // A very tall seat tube relative to saddle height => huge required exposure.
+    const bike: Bike = { ...baseBike, seatTubeLength: 300 };
+    const c = computeScenario(bike, rider, NO_ADJUST, catalog, DEFAULT_SEATPOSTS);
+    expect(c.seatpostInsertion!.feasible).toBe(false);
+    expect(
+      c.seatpostInsertion!.flags.some(
+        (f) => f.code === "seatpost-insufficient-insertion"
+      )
+    ).toBe(true);
+  });
+});

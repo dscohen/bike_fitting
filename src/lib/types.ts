@@ -22,6 +22,10 @@ export interface Bike {
   // Optional headset top-cap + spacer geometry constraints:
   maxSpacerStack?: number; // mm of spacers the steerer allows (default via constants)
   headsetStack?: number; // mm of headset top cap/cover below the first spacer
+  // Optional seat tube length (c-t: BB center to top of seat tube, along the
+  // tube — same convention as RiderFitInput.saddleHeight). Drives the
+  // seatpost-insertion sanity check when provided.
+  seatTubeLength?: number;
   // Free-form notes / metadata:
   notes?: string;
 }
@@ -105,6 +109,8 @@ export interface Seatpost {
   name: string;
   offset: number; // mm of setback (0 = inline / zero-offset)
   railTravel?: number; // mm of fore/aft rail adjustment available (each direction)
+  length?: number; // mm, total post length (clamp-end to tip)
+  minInsert?: number; // mm, minimum insertion depth marked on the post
   custom?: boolean;
 }
 
@@ -144,6 +150,16 @@ export interface SaddleSolution {
   requiredOffset: number; // mm setback the post must provide to center the clamp
   recommended?: Seatpost; // closest feasible catalog post
   railClampOffset?: number; // mm from usable-rail start to the clamp center
+  flags: Flag[];
+  feasible: boolean;
+}
+
+// Sanity check: is there enough seatpost material actually inserted in the
+// frame's seat tube to reach the required saddle height safely?
+export interface SeatpostInsertionCheck {
+  requiredExposedLength: number; // mm of post that must show above the frame
+  maxSafeExposure?: number; // mm — post.length - post.minInsert, when known
+  post?: Seatpost; // the post the check was evaluated against, if any
   flags: Flag[];
   feasible: boolean;
 }

@@ -119,7 +119,11 @@ export default function App() {
           {/* Right: results */}
           <div className="flex flex-col gap-3 overflow-y-auto">
             {computed?.target && (
-              <SummaryPanel target={computed.target} saddle={computed.saddle} />
+              <SummaryPanel
+                target={computed.target}
+                saddle={computed.saddle}
+                seatpostInsertion={computed.seatpostInsertion}
+              />
             )}
             <Section title="Viable permutations">
               {computed?.target && !computed.error ? (

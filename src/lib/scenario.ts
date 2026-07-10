@@ -10,10 +10,11 @@ import type {
   Permutation,
   SaddleSolution,
   Seatpost,
+  SeatpostInsertionCheck,
 } from "./types";
 import { resolveFitTarget, FitInputError } from "./convert";
 import { solvePermutations, type SolverCatalog } from "./solver";
-import { solveSaddle } from "./geometry";
+import { solveSaddle, checkSeatpostInsertion } from "./geometry";
 
 /** A bar with built-in rise (e.g. Redshift Top Shelf, Surly Truck Stop). */
 export function isRiserBar(bar: Bar): boolean {
@@ -88,6 +89,7 @@ export interface ScenarioComputation {
   target?: FitTarget;
   permutations: Permutation[];
   saddle?: SaddleSolution;
+  seatpostInsertion?: SeatpostInsertionCheck;
   error?: string;
 }
 
@@ -124,6 +126,11 @@ export function computeScenario(
   const bars = resolveBars(catalog, rider, barConstraint);
   const permutations = solvePermutations(bike, target, { ...catalog, bars });
   const saddle = solveSaddle(bike, target.saddle, seatposts);
+  const seatpostInsertion = checkSeatpostInsertion(
+    bike.seatTubeLength,
+    target.saddle.saddleHeight,
+    saddle.recommended
+  );
 
-  return { target, permutations, saddle };
+  return { target, permutations, saddle, seatpostInsertion };
 }

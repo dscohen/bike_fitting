@@ -1,6 +1,6 @@
 // At-a-glance fit numbers and seatpost/rail feasibility for the active scenario.
 
-import type { FitTarget, SaddleSolution } from "../lib/types";
+import type { FitTarget, SaddleSolution, SeatpostInsertionCheck } from "../lib/types";
 import { computedDrop, computedReach } from "../lib/scenario";
 import { Section } from "./ui";
 import { FlagList } from "./Flags";
@@ -8,9 +8,11 @@ import { FlagList } from "./Flags";
 export default function SummaryPanel({
   target,
   saddle,
+  seatpostInsertion,
 }: {
   target: FitTarget;
   saddle?: SaddleSolution;
+  seatpostInsertion?: SeatpostInsertionCheck;
 }) {
   return (
     <Section title="Fit summary">
@@ -58,6 +60,35 @@ export default function SummaryPanel({
           </p>
           <div className="mt-1">
             <FlagList flags={saddle.flags} />
+          </div>
+        </div>
+      )}
+
+      {seatpostInsertion && (
+        <div className="mt-3 rounded border border-slate-100 bg-slate-50 p-2">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Seatpost insertion
+            </span>
+            <span
+              className={`text-[10px] font-medium ${
+                seatpostInsertion.feasible ? "text-emerald-600" : "text-red-600"
+              }`}
+            >
+              {seatpostInsertion.feasible ? "feasible" : "not feasible"}
+            </span>
+          </div>
+          <p className="text-xs text-slate-600">
+            Needs {seatpostInsertion.requiredExposedLength.toFixed(0)}mm of post
+            exposed above the frame
+            {seatpostInsertion.maxSafeExposure != null && seatpostInsertion.post
+              ? ` — ${seatpostInsertion.post.name} allows up to ${seatpostInsertion.maxSafeExposure.toFixed(
+                  0
+                )}mm safely.`
+              : "."}
+          </p>
+          <div className="mt-1">
+            <FlagList flags={seatpostInsertion.flags} />
           </div>
         </div>
       )}

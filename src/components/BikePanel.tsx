@@ -55,6 +55,13 @@ export default function BikePanel({ bike, onChange }: Props) {
           placeholder="0"
           onChange={(v) => onChange({ headsetStack: v })}
         />
+        <NumberField
+          label="Seat tube length (optional)"
+          value={bike.seatTubeLength}
+          placeholder="not set"
+          onChange={(v) => onChange({ seatTubeLength: v })}
+          help="BB center to the top of the seat tube, measured along the tube (c-t) — same convention as saddle height. When set, sanity-checks that the seatpost can be inserted deep enough to meet its minimum-insertion mark at the rider's saddle height."
+        />
       </div>
     </Section>
   );
