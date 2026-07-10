@@ -7,8 +7,8 @@ export function FlagPill({ flag }: { flag: Flag }) {
       title={flag.message}
       className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${
         isError
-          ? "bg-red-100 text-red-700"
-          : "bg-amber-100 text-amber-700"
+          ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
+          : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
       }`}
     >
       {flag.message}
@@ -18,7 +18,11 @@ export function FlagPill({ flag }: { flag: Flag }) {
 
 export function FlagList({ flags }: { flags: Flag[] }) {
   if (flags.length === 0)
-    return <span className="text-[10px] text-emerald-600">✓ clean</span>;
+    return (
+      <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+        ✓ clean
+      </span>
+    );
   return (
     <div className="flex flex-wrap gap-1">
       {flags.map((f, i) => (

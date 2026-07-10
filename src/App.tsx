@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useStore } from "./store/useStore";
 import { useSolverCatalog, useSeatposts, useBars } from "./store/selectors";
-import { computeScenario } from "./lib/scenario";
+import { computeScenario, solveComboForHand } from "./lib/scenario";
 import { permutationId } from "./lib/solver";
 import type { Permutation } from "./lib/types";
 import Toolbar from "./components/Toolbar";
@@ -9,6 +9,7 @@ import RiderPanel from "./components/RiderPanel";
 import BikePanel from "./components/BikePanel";
 import AdjustControls from "./components/AdjustControls";
 import BarConstraintControls from "./components/BarConstraintControls";
+import CrankHipPanel from "./components/CrankHipPanel";
 import SideView from "./components/SideView";
 import PermutationsTable from "./components/PermutationsTable";
 import SummaryPanel from "./components/SummaryPanel";
@@ -44,7 +45,8 @@ export default function App() {
       active.adjust,
       catalog,
       seatposts,
-      active.barConstraint
+      active.barConstraint,
+      { current: active.crankCurrent, target: active.crankTarget }
     );
   }, [bike, rider, active, catalog, seatposts]);
 
@@ -54,7 +56,7 @@ export default function App() {
 
   if (view === "compare") {
     return (
-      <div className="flex h-full flex-col bg-slate-100">
+      <div className="flex h-full flex-col bg-slate-100 dark:bg-slate-950">
         <Toolbar view={view} onView={setView} />
         <ComparisonView />
       </div>
@@ -62,11 +64,11 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-slate-100">
+    <div className="flex h-full flex-col bg-slate-100 dark:bg-slate-950">
       <Toolbar view={view} onView={setView} />
 
       {!active || !bike || !rider ? (
-        <div className="flex flex-1 items-center justify-center text-sm text-slate-500">
+        <div className="flex flex-1 items-center justify-center text-sm text-slate-500 dark:text-slate-400">
           Create or select a scenario to begin.
         </div>
       ) : (
@@ -96,13 +98,38 @@ export default function App() {
                 }
               />
             )}
+            <CrankHipPanel
+              hip={computed?.hip}
+              crankCurrent={active.crankCurrent}
+              crankTarget={active.crankTarget}
+              onChange={(patch) => updateScenario(active.id, patch)}
+              comboForPoint={(dx, dy) => {
+                const t = computed?.hip?.tradeoff;
+                if (!computed?.target || !computed.hip || !t) return undefined;
+                // Recreate the point's hand target: crank-compensated hand,
+                // then bars back by dx and down by dy (see crankTradeoff).
+                const dc = t.crankCurrent - t.crankTarget;
+                const hand = {
+                  x: computed.hip.hand.x - dx,
+                  y: computed.hip.hand.y + dc - dy,
+                };
+                return solveComboForHand(
+                  bike,
+                  computed.target,
+                  hand,
+                  catalog,
+                  rider,
+                  active.barConstraint
+                );
+              }}
+            />
           </div>
 
           {/* Center: drawing */}
           <div className="flex min-h-0 flex-col gap-3">
-            <div className="flex-1 rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+            <div className="flex-1 rounded-lg border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900">
               {computed?.error ? (
-                <div className="flex h-full items-center justify-center p-4 text-center text-sm text-red-600">
+                <div className="flex h-full items-center justify-center p-4 text-center text-sm text-red-600 dark:text-red-400">
                   {computed.error}
                 </div>
               ) : computed?.target ? (
@@ -111,6 +138,7 @@ export default function App() {
                   target={computed.target}
                   permutation={sel}
                   saddle={computed.saddle}
+                  hip={computed.hip}
                 />
               ) : null}
             </div>
@@ -135,7 +163,7 @@ export default function App() {
                   onSelect={(p) => setSelectedId(permutationId(p))}
                 />
               ) : (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Fix the fit inputs to see permutations.
                 </p>
               )}

@@ -7,7 +7,15 @@
 // construction legs with tick-capped ends and a Δx/Δy mm label, so it's easy to
 // see exactly how much each part contributes in each direction.
 
-import type { Bike, FitTarget, Permutation, Vec2, SaddleSolution } from "../lib/types";
+import { useState } from "react";
+import type {
+  Bike,
+  FitTarget,
+  Permutation,
+  Vec2,
+  SaddleSolution,
+  HipModelResult,
+} from "../lib/types";
 import { frontEndGeometry } from "../lib/geometry";
 
 const W = 720;
@@ -15,15 +23,19 @@ const H = 560;
 const PAD = 48;
 const DEG = Math.PI / 180;
 const DIM_COLOR = "#7c3aed";
+const RIDER_COLOR = "#f97316"; // orange, distinct from frame/dimension ink
 
 interface Props {
   bike: Bike;
   target: FitTarget;
   permutation?: Permutation;
   saddle?: SaddleSolution;
+  hip?: HipModelResult; // rider hip-angle overlay (studio view only)
 }
 
-export default function SideView({ bike, target, permutation, saddle }: Props) {
+export default function SideView({ bike, target, permutation, saddle, hip }: Props) {
+  const [showRider, setShowRider] = useState(true);
+  const rider = hip && hip.feasible && showRider ? hip : undefined;
   // Front-end chain from the selected permutation (or a neutral default so the
   // frame still draws before a permutation is chosen).
   const fe = frontEndGeometry(bike, {
@@ -51,6 +63,7 @@ export default function SideView({ bike, target, permutation, saddle }: Props) {
   };
 
   const pts = [BB, fe.headTubeTop, fe.stemBase, fe.barClamp, fe.hood, target.hand, nose, tail, axisPoint];
+  if (rider) pts.push(rider.hip, rider.kneeTop, rider.pedalTop, rider.shoulder);
 
   const minX = Math.min(...pts.map((p) => p.x));
   const maxX = Math.max(...pts.map((p) => p.x));
@@ -67,6 +80,32 @@ export default function SideView({ bike, target, permutation, saddle }: Props) {
   const seatBad = saddle ? !saddle.feasible : false;
   const railWarn = saddle?.flags.some((f) => f.code === "rail-clamp-off-usable");
 
+  // Screen-space hip-angle arc between the femur (hip->knee) and torso
+  // (hip->shoulder) directions, sampled as a polyline to sidestep SVG arc flags.
+  let hipArc: { path: string; label: Vec2 } | undefined;
+  if (rider) {
+    const hipS = { x: sx(rider.hip), y: sy(rider.hip) };
+    const kneeS = { x: sx(rider.kneeTop), y: sy(rider.kneeTop) };
+    const shldS = { x: sx(rider.shoulder), y: sy(rider.shoulder) };
+    const aFem = Math.atan2(kneeS.y - hipS.y, kneeS.x - hipS.x);
+    let aTor = Math.atan2(shldS.y - hipS.y, shldS.x - hipS.x);
+    let d = aTor - aFem;
+    while (d > Math.PI) d -= 2 * Math.PI;
+    while (d < -Math.PI) d += 2 * Math.PI;
+    const r = 34;
+    const steps = 16;
+    const pathPts: string[] = [];
+    for (let i = 0; i <= steps; i++) {
+      const a = aFem + (d * i) / steps;
+      pathPts.push(`${hipS.x + r * Math.cos(a)},${hipS.y + r * Math.sin(a)}`);
+    }
+    const mid = aFem + d / 2;
+    hipArc = {
+      path: pathPts.join(" "),
+      label: { x: hipS.x + (r + 16) * Math.cos(mid), y: hipS.y + (r + 16) * Math.sin(mid) },
+    };
+  }
+
   // Dimension breakdown for each component: (from, to) in world mm.
   const dims: { from: Vec2; to: Vec2 }[] = [
     { from: fe.headTubeTop, to: fe.stemBase }, // spacers
@@ -80,7 +119,7 @@ export default function SideView({ bike, target, permutation, saddle }: Props) {
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      className="h-full w-full rounded-lg bg-slate-50"
+      className="h-full w-full rounded-lg bg-slate-50 dark:bg-slate-800"
       preserveAspectRatio="xMidYMid meet"
     >
       <line x1={0} y1={sy(BB)} x2={W} y2={sy(BB)} stroke="#e2e8f0" strokeDasharray="4 4" />
@@ -93,23 +132,45 @@ export default function SideView({ bike, target, permutation, saddle }: Props) {
       {/* spacers */}
       <line x1={sx(fe.headTubeTop)} y1={sy(fe.headTubeTop)} x2={sx(fe.stemBase)} y2={sy(fe.stemBase)} stroke="#0ea5e9" strokeWidth={5} strokeLinecap="round" />
       {/* stem */}
-      <line x1={sx(fe.stemBase)} y1={sy(fe.stemBase)} x2={sx(fe.barClamp)} y2={sy(fe.barClamp)} stroke="#0f172a" strokeWidth={4} strokeLinecap="round" />
+      <line x1={sx(fe.stemBase)} y1={sy(fe.stemBase)} x2={sx(fe.barClamp)} y2={sy(fe.barClamp)} stroke="var(--sideview-ink)" strokeWidth={4} strokeLinecap="round" />
       {/* bar reach to hoods (hood mode) */}
       {target.handMode === "hood" && (
-        <line x1={sx(fe.barClamp)} y1={sy(fe.barClamp)} x2={sx(fe.hood)} y2={sy(fe.hood)} stroke="#334155" strokeWidth={3} strokeLinecap="round" />
+        <line x1={sx(fe.barClamp)} y1={sy(fe.barClamp)} x2={sx(fe.hood)} y2={sy(fe.hood)} stroke="var(--sideview-ink-soft)" strokeWidth={3} strokeLinecap="round" />
       )}
 
       {/* saddle top surface (tail -> nose) */}
-      <line x1={sx(tail)} y1={sy(tail)} x2={sx(nose)} y2={sy(nose)} stroke={seatBad ? "#dc2626" : railWarn ? "#d97706" : "#0f172a"} strokeWidth={5} strokeLinecap="round" />
+      <line x1={sx(tail)} y1={sy(tail)} x2={sx(nose)} y2={sy(nose)} stroke={seatBad ? "#dc2626" : railWarn ? "#d97706" : "var(--sideview-ink)"} strokeWidth={5} strokeLinecap="round" />
       {/* clamp tick under the saddle */}
       <line x1={sx(clamp)} y1={sy(clamp)} x2={sx(clamp)} y2={sy(clamp) + 12} stroke={seatBad ? "#dc2626" : "#64748b"} strokeWidth={3} />
       {/* nose marker */}
-      <circle cx={sx(nose)} cy={sy(nose)} r={3} fill="#0f172a" />
+      <circle cx={sx(nose)} cy={sy(nose)} r={3} fill="var(--sideview-ink)" />
 
       {/* per-component Δx/Δy sketch-dimension breakdown */}
       {dims.map((d, i) => (
         <Dim key={i} from={d.from} to={d.to} sx={sx} sy={sy} />
       ))}
+
+      {/* rider overlay: leg to top-of-stroke pedal + straight back, hip arc */}
+      {rider && hipArc && (
+        <g>
+          {/* lower leg (knee -> TDC pedal) */}
+          <line x1={sx(rider.kneeTop)} y1={sy(rider.kneeTop)} x2={sx(rider.pedalTop)} y2={sy(rider.pedalTop)} stroke={RIDER_COLOR} strokeWidth={3} strokeLinecap="round" opacity={0.85} />
+          {/* femur (hip -> knee) */}
+          <line x1={sx(rider.hip)} y1={sy(rider.hip)} x2={sx(rider.kneeTop)} y2={sy(rider.kneeTop)} stroke={RIDER_COLOR} strokeWidth={4} strokeLinecap="round" />
+          {/* torso (hip -> shoulder) */}
+          <line x1={sx(rider.hip)} y1={sy(rider.hip)} x2={sx(rider.shoulder)} y2={sy(rider.shoulder)} stroke={RIDER_COLOR} strokeWidth={4} strokeLinecap="round" />
+          {/* arm (shoulder -> hand) */}
+          <line x1={sx(rider.shoulder)} y1={sy(rider.shoulder)} x2={sx(rider.hand)} y2={sy(rider.hand)} stroke={RIDER_COLOR} strokeWidth={2.5} strokeLinecap="round" opacity={0.7} />
+          {/* joints */}
+          <circle cx={sx(rider.pedalTop)} cy={sy(rider.pedalTop)} r={3} fill={RIDER_COLOR} />
+          <circle cx={sx(rider.kneeTop)} cy={sy(rider.kneeTop)} r={4} fill={RIDER_COLOR} />
+          <circle cx={sx(rider.shoulder)} cy={sy(rider.shoulder)} r={4} fill={RIDER_COLOR} />
+          <circle cx={sx(rider.hip)} cy={sy(rider.hip)} r={5} fill={RIDER_COLOR} />
+          {/* hip-angle arc + label */}
+          <polyline points={hipArc.path} fill="none" stroke={RIDER_COLOR} strokeWidth={2} />
+          <DimLabel x={hipArc.label.x} y={hipArc.label.y} text={`${rider.hipAngleDeg.toFixed(0)}°`} />
+        </g>
+      )}
 
       {/* achieved hand point */}
       <circle cx={sx(achieved)} cy={sy(achieved)} r={6} fill={miss ? "#dc2626" : "#0ea5e9"} />
@@ -120,8 +181,8 @@ export default function SideView({ bike, target, permutation, saddle }: Props) {
       )}
 
       {/* BB */}
-      <circle cx={sx(BB)} cy={sy(BB)} r={7} fill="#0f172a" />
-      <circle cx={sx(BB)} cy={sy(BB)} r={3} fill="#f8fafc" />
+      <circle cx={sx(BB)} cy={sy(BB)} r={7} fill="var(--sideview-ink)" />
+      <circle cx={sx(BB)} cy={sy(BB)} r={3} fill="var(--sideview-card)" />
       <text x={sx(BB) + 10} y={sy(BB) + 18} fontSize={11} fill="#64748b">BB</text>
 
       {/* legend */}
@@ -139,6 +200,21 @@ export default function SideView({ bike, target, permutation, saddle }: Props) {
           <text x={10} y={4}>Δx / Δy per part</text>
         </g>
       </g>
+
+      {/* rider overlay toggle (only when a feasible hip model is available) */}
+      {hip && hip.feasible && (
+        <g
+          transform={`translate(${W - PAD - 92},12)`}
+          onClick={() => setShowRider((v) => !v)}
+          style={{ cursor: "pointer" }}
+        >
+          <rect x={0} y={0} width={92} height={18} rx={9} fill={showRider ? RIDER_COLOR : "#e2e8f0"} />
+          <circle cx={showRider ? 82 : 10} cy={9} r={6} fill="white" />
+          <text x={showRider ? 8 : 22} y={13} fontSize={9} fill={showRider ? "white" : "#64748b"}>
+            rider {showRider ? "on" : "off"}
+          </text>
+        </g>
+      )}
     </svg>
   );
 }
@@ -225,7 +301,7 @@ function DimLabel({
   const w = text.length * 5.5 + 8;
   return (
     <g transform={`translate(${x + dx},${y + dy})`}>
-      <rect x={-w / 2} y={-7.5} width={w} height={11} rx={2} fill="white" opacity={0.85} stroke="none" />
+      <rect x={-w / 2} y={-7.5} width={w} height={11} rx={2} fill="var(--sideview-card)" opacity={0.85} stroke="none" />
       <text x={0} y={2} fontSize={9} textAnchor="middle" fill="#6d28d9">
         {text}
       </text>

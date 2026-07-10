@@ -58,11 +58,25 @@ export interface RiderFitInput {
   saddleToBarDrop?: number;
 }
 
+// Optional rider body measurements, used by the hip-angle model. A single
+// height drives everything via anthropometric ratios; any segment can be
+// overridden directly (all mm). Leg segments (femur/tibia/foot) default to
+// auto-fitting the saddle height so the leg always reaches the pedal.
+export interface RiderBody {
+  heightMm?: number; // standing height; derives the segments below when they're blank
+  torsoLength?: number; // hip joint -> shoulder (acromion)
+  armLength?: number; // shoulder -> hand grip
+  femur?: number; // hip joint -> knee
+  tibia?: number; // knee -> ankle
+  foot?: number; // ankle -> pedal spindle (shoe + cleat stack)
+}
+
 export interface Rider {
   id: string;
   name: string;
   fit: RiderFitInput;
   currentBarId?: string; // bar this rider currently owns/rides (catalog or custom bar id)
+  body?: RiderBody; // optional; enables the hip-angle / crank model
   notes?: string;
 }
 
@@ -165,6 +179,51 @@ export interface SeatpostInsertionCheck {
 }
 
 // ---------------------------------------------------------------------------
+// Hip-angle / crank model
+// ---------------------------------------------------------------------------
+
+// Concrete segment lengths (mm) the hip model runs on, plus how they were
+// obtained (for a UI note). Leg segments are chosen so the leg reaches the
+// pedal at the given saddle height unless the rider overrode them.
+export interface ResolvedBody {
+  heightMm: number;
+  torsoLength: number;
+  armLength: number;
+  femur: number;
+  tibia: number;
+  foot: number; // ankle -> pedal spindle
+  source: "measured" | "from-height" | "estimated"; // provenance for a UI hint
+}
+
+// The saddle-back / bar-drop moves that restore a baseline hip angle after a
+// crank change, plus the full iso-hip-angle trade-off locus between them.
+export interface CrankTradeoff {
+  crankCurrent: number;
+  crankTarget: number;
+  topOpeningMm: number; // TDC hip->pedal gap change = 2 * (current - target)
+  deltaHipDeg: number; // hip angle opened by the crank change (target - current)
+  saddleBackMm: number; // rearward saddle (+ bars back same) that restores baseline
+  barDropMm: number; // extra bar drop that restores baseline
+  isoCurve: { dx: number; dy: number }[]; // (saddle-back, bar-drop) mixes holding baseline
+  feasible: boolean;
+}
+
+// Result of evaluating the rider's hip angle at top-dead-center for a bike/fit.
+export interface HipModelResult {
+  hip: Vec2; // hip joint (BB-origin)
+  kneeTop: Vec2; // knee at top-dead-center
+  pedalTop: Vec2; // pedal spindle at top-dead-center (0, crank)
+  shoulder: Vec2; // shoulder (from the straight-back torso solve)
+  hand: Vec2; // hand target used
+  hipAngleDeg: number; // torso-to-femur angle at TDC (smaller = more closed)
+  backAngleDeg: number; // torso to horizontal
+  body: ResolvedBody;
+  tradeoff?: CrankTradeoff; // present when a target crank differs from current
+  flags: Flag[];
+  feasible: boolean;
+}
+
+// ---------------------------------------------------------------------------
 // Persisted app state
 // ---------------------------------------------------------------------------
 
@@ -176,11 +235,16 @@ export interface Scenario {
   // Live-adjust deltas applied on top of the rider's saved fit (mm):
   adjust: {
     dropDelta: number;
-    reachDelta: number;
+    reachDelta: number; // moves the bars only (saddle static)
     saddleHeightDelta: number;
+    setbackDelta?: number; // moves the saddle back AND the bars back the same
   };
   // Optionally pin a chosen permutation:
   chosenPermutationId?: string;
+  // Crank length comparison for the hip-angle panel (mm). crankCurrent is the
+  // rider's present crank; crankTarget is the "what if" being evaluated.
+  crankCurrent?: number;
+  crankTarget?: number;
   // Constrain which bars the solver searches (hood mode only; no-op in clamp mode):
   barConstraint?: {
     onlyRidersBar?: boolean; // restrict the search to rider.currentBarId

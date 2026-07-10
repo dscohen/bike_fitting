@@ -27,7 +27,7 @@ export default function BarConstraintControls({
 
   return (
     <Section title="Bar search">
-      <label className="flex items-start gap-2 text-xs text-slate-600">
+      <label className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
         <input
           type="checkbox"
           className="mt-0.5 accent-sky-600"
@@ -40,14 +40,14 @@ export default function BarConstraintControls({
         <span>
           Only search the rider's current bar
           {!hasRidersBar && (
-            <span className="block text-[10px] text-slate-400">
+            <span className="block text-[10px] text-slate-400 dark:text-slate-500">
               Set a current bar in Rider fit to enable this.
             </span>
           )}
         </span>
       </label>
 
-      <label className="mt-2 flex items-start gap-2 text-xs text-slate-600">
+      <label className="mt-2 flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
         <input
           type="checkbox"
           className="mt-0.5 accent-sky-600"
@@ -58,7 +58,7 @@ export default function BarConstraintControls({
         />
         <span>
           No riser bars
-          <span className="block text-[10px] text-slate-400">
+          <span className="block text-[10px] text-slate-400 dark:text-slate-500">
             Exclude bars with built-in rise (Redshift Top Shelf, Surly Truck
             Stop, Control Tech CLS Gravel Riser).
           </span>

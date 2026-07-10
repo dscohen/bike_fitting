@@ -36,20 +36,22 @@ export default function SummaryPanel({
       </dl>
 
       {saddle && (
-        <div className="mt-3 rounded border border-slate-100 bg-slate-50 p-2">
+        <div className="mt-3 rounded border border-slate-100 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Seatpost / rails
             </span>
             <span
               className={`text-[10px] font-medium ${
-                saddle.feasible ? "text-emerald-600" : "text-red-600"
+                saddle.feasible
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-red-600 dark:text-red-400"
               }`}
             >
               {saddle.feasible ? "feasible" : "not feasible"}
             </span>
           </div>
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-slate-600 dark:text-slate-300">
             Needs ~{saddle.requiredOffset.toFixed(0)}mm setback.
             {saddle.recommended
               ? ` Use ${saddle.recommended.name}` +
@@ -65,20 +67,22 @@ export default function SummaryPanel({
       )}
 
       {seatpostInsertion && (
-        <div className="mt-3 rounded border border-slate-100 bg-slate-50 p-2">
+        <div className="mt-3 rounded border border-slate-100 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Seatpost insertion
             </span>
             <span
               className={`text-[10px] font-medium ${
-                seatpostInsertion.feasible ? "text-emerald-600" : "text-red-600"
+                seatpostInsertion.feasible
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-red-600 dark:text-red-400"
               }`}
             >
               {seatpostInsertion.feasible ? "feasible" : "not feasible"}
             </span>
           </div>
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-slate-600 dark:text-slate-300">
             Needs {seatpostInsertion.requiredExposedLength.toFixed(0)}mm of post
             exposed above the frame
             {seatpostInsertion.maxSafeExposure != null && seatpostInsertion.post
@@ -99,8 +103,8 @@ export default function SummaryPanel({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <>
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="text-right font-mono text-slate-800">{value}</dd>
+      <dt className="text-slate-500 dark:text-slate-400">{label}</dt>
+      <dd className="text-right font-mono text-slate-800 dark:text-slate-100">{value}</dd>
     </>
   );
 }

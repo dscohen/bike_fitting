@@ -23,7 +23,7 @@ export default function PermutationsTable({
 }: Props) {
   if (permutations.length === 0) {
     return (
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         No combination lands within tolerance. Widen the fit target or add parts
         to the catalog.
       </p>
@@ -38,7 +38,7 @@ export default function PermutationsTable({
   return (
     <div className="overflow-x-auto">
       {isClosestMiss && (
-        <p className="mb-2 rounded border border-red-200 bg-red-50 px-2 py-1.5 text-[11px] text-red-700">
+        <p className="mb-2 rounded border border-red-200 bg-red-50 px-2 py-1.5 text-[11px] text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
           No catalog combination reaches this target. Showing the closest
           achievable options instead — see the direction hint in each row's
           notes to know which way to adjust the fit or frame.
@@ -46,7 +46,7 @@ export default function PermutationsTable({
       )}
       <table className="w-full border-collapse text-xs">
         <thead>
-          <tr className="text-left text-[10px] uppercase tracking-wide text-slate-400">
+          <tr className="text-left text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
             <th className="py-1 pr-2">Stem</th>
             {showBar && <th className="py-1 pr-2">Bar</th>}
             <th className="py-1 pr-2">Spacers</th>
@@ -63,9 +63,11 @@ export default function PermutationsTable({
               <tr
                 key={id}
                 onClick={() => onSelect(p)}
-                className={`cursor-pointer border-t border-slate-100 ${
-                  selected ? "bg-sky-50" : "hover:bg-slate-50"
-                } ${p.feasible ? "" : "text-red-600"}`}
+                className={`cursor-pointer border-t border-slate-100 dark:border-slate-800 ${
+                  selected
+                    ? "bg-sky-50 dark:bg-sky-950"
+                    : "hover:bg-slate-50 dark:hover:bg-slate-800"
+                } ${p.feasible ? "text-slate-700 dark:text-slate-200" : "text-red-600 dark:text-red-400"}`}
               >
                 <td className="py-1.5 pr-2 font-medium">
                   {p.stem.length}mm {p.stem.angle > 0 ? "+" : ""}
@@ -75,7 +77,7 @@ export default function PermutationsTable({
                   <td className="py-1.5 pr-2">
                     {p.bar?.name ?? `${p.bar?.reach}mm`}
                     {isRidersBar && (
-                      <span className="ml-1 rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-medium text-emerald-700">
+                      <span className="ml-1 rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
                         rider's bar
                       </span>
                     )}

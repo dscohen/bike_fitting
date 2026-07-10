@@ -99,6 +99,7 @@ const seedRiders: Rider[] = [
       hoodX: 560,
       hoodY: 590,
     },
+    body: { heightMm: 1780 },
   },
 ];
 
@@ -115,6 +116,8 @@ const initialData: AppData = {
       riderId: "seed-rider-1",
       bikeId: "seed-bike-1",
       adjust: { dropDelta: 0, reachDelta: 0, saddleHeightDelta: 0 },
+      crankCurrent: 172.5,
+      crankTarget: 165,
     },
   ],
   activeScenarioId: "seed-scenario-1",

@@ -11,3 +11,17 @@ body,
 body {
   margin: 0;
 }
+
+/* SideView drawing ink colors — swapped so frame/stem linework stays visible
+   against a dark canvas instead of near-black-on-near-black. */
+:root {
+  --sideview-ink: #0f172a;
+  --sideview-ink-soft: #334155;
+  --sideview-card: #f8fafc;
+}
+
+.dark {
+  --sideview-ink: #e2e8f0;
+  --sideview-ink-soft: #cbd5e1;
+  --sideview-card: #1e293b;
+}

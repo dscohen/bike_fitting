@@ -4,6 +4,7 @@
 import { useRef } from "react";
 import { useStore } from "../store/useStore";
 import { Button } from "./ui";
+import ThemeToggle from "./ThemeToggle";
 
 interface Props {
   view: "studio" | "compare";
@@ -100,14 +101,14 @@ export default function Toolbar({ view, onView }: Props) {
   };
 
   return (
-    <header className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-4 py-2">
-      <span className="mr-2 text-sm font-bold text-slate-800">BikeGeo</span>
+    <header className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-4 py-2 dark:border-slate-700 dark:bg-slate-900">
+      <span className="mr-2 text-sm font-bold text-slate-800 dark:text-slate-100">BikeGeo</span>
 
       {/* Scenario */}
       <select
         value={activeScenarioId ?? ""}
         onChange={(e) => setActiveScenario(e.target.value)}
-        className="rounded border border-slate-300 px-2 py-1 text-xs"
+        className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
       >
         {scenarios.map((s) => (
           <option key={s.id} value={s.id}>
@@ -124,17 +125,17 @@ export default function Toolbar({ view, onView }: Props) {
         </Button>
       )}
 
-      <span className="mx-1 h-4 w-px bg-slate-200" />
+      <span className="mx-1 h-4 w-px bg-slate-200 dark:bg-slate-700" />
 
       {/* Rider assignment */}
-      <label className="flex items-center gap-1 text-[11px] text-slate-500">
+      <label className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
         rider
         <select
           value={active?.riderId ?? ""}
           onChange={(e) =>
             active && updateScenario(active.id, { riderId: e.target.value })
           }
-          className="rounded border border-slate-300 px-2 py-1 text-xs"
+          className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
         >
           {riders.map((r) => (
             <option key={r.id} value={r.id}>
@@ -148,14 +149,14 @@ export default function Toolbar({ view, onView }: Props) {
       </Button>
 
       {/* Bike assignment */}
-      <label className="flex items-center gap-1 text-[11px] text-slate-500">
+      <label className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
         bike
         <select
           value={active?.bikeId ?? ""}
           onChange={(e) =>
             active && updateScenario(active.id, { bikeId: e.target.value })
           }
-          className="rounded border border-slate-300 px-2 py-1 text-xs"
+          className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
         >
           {bikes.map((b) => (
             <option key={b.id} value={b.id}>
@@ -185,11 +186,13 @@ export default function Toolbar({ view, onView }: Props) {
       )}
 
       <div className="ml-auto flex items-center gap-2">
-        <div className="flex overflow-hidden rounded border border-slate-300">
+        <div className="flex overflow-hidden rounded border border-slate-300 dark:border-slate-600">
           <button
             onClick={() => onView("studio")}
             className={`px-2.5 py-1 text-xs ${
-              view === "studio" ? "bg-sky-600 text-white" : "bg-white text-slate-600"
+              view === "studio"
+                ? "bg-sky-600 text-white"
+                : "bg-white text-slate-600 dark:bg-slate-800 dark:text-slate-300"
             }`}
           >
             Fit studio
@@ -197,7 +200,9 @@ export default function Toolbar({ view, onView }: Props) {
           <button
             onClick={() => onView("compare")}
             className={`px-2.5 py-1 text-xs ${
-              view === "compare" ? "bg-sky-600 text-white" : "bg-white text-slate-600"
+              view === "compare"
+                ? "bg-sky-600 text-white"
+                : "bg-white text-slate-600 dark:bg-slate-800 dark:text-slate-300"
             }`}
           >
             Compare
@@ -212,6 +217,8 @@ export default function Toolbar({ view, onView }: Props) {
           className="hidden"
           onChange={(e) => e.target.files?.[0] && doImport(e.target.files[0])}
         />
+        <span className="mx-1 h-4 w-px bg-slate-200 dark:bg-slate-700" />
+        <ThemeToggle />
       </div>
     </header>
   );
