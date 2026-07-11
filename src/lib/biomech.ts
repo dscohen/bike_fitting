@@ -248,10 +248,15 @@ export function crankTradeoff(input: CrankTradeoffInput): CrankTradeoff {
   const dc = crankCurrent - crankTarget; // + when the target crank is shorter
   const sta = staDeg * DEG;
 
+  // Raising the saddle leaves the bars where they are (they're set by the
+  // frame/stem), so the saddle->bar drop grows by the saddle's vertical rise.
+  const implicitDropMm = Math.sin(sta) * dc;
+
   const empty: CrankTradeoff = {
     crankCurrent,
     crankTarget,
     topOpeningMm: 2 * dc,
+    implicitDropMm,
     deltaHipDeg: 0,
     saddleBackMm: 0,
     barDropMm: 0,
@@ -262,15 +267,18 @@ export function crankTradeoff(input: CrankTradeoffInput): CrankTradeoff {
   const baseline = hipAngleFor(hip, hand, crankCurrent, body);
   if (baseline == null) return empty;
 
-  // Raise the saddle by Δc (hip shifts along the seat-tube axis) and the hand by
-  // Δc (preserve drop), then evaluate at the target crank.
+  // Raise the saddle by Δc (hip shifts up/back along the seat-tube axis) to keep
+  // leg extension, and evaluate at the target crank. The bars are FIXED — so the
+  // saddle->bar drop and reach implicitly increase, and those changes feed into
+  // the hip angle (they partially offset the leg-side opening). We do NOT raise
+  // the hand: that would assume the fitter also lifts the cockpit by Δc.
   const hipOpened: Vec2 = {
     x: hip.x - Math.cos(sta) * dc,
     y: hip.y + Math.sin(sta) * dc,
   };
-  const handOpened: Vec2 = { x: hand.x, y: hand.y + dc };
+  const handOpened: Vec2 = { x: hand.x, y: hand.y };
   const opened = hipAngleFor(hipOpened, handOpened, crankTarget, body);
-  if (opened == null) return { ...empty, topOpeningMm: 2 * dc };
+  if (opened == null) return { ...empty };
 
   const deltaHipDeg = opened - baseline;
 
@@ -333,6 +341,7 @@ export function crankTradeoff(input: CrankTradeoffInput): CrankTradeoff {
     crankCurrent,
     crankTarget,
     topOpeningMm: 2 * dc,
+    implicitDropMm,
     deltaHipDeg,
     saddleBackMm,
     barDropMm,

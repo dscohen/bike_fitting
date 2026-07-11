@@ -11,6 +11,7 @@ import type {
   Seatpost,
   Scenario,
 } from "../lib/types";
+import type { SharedFit } from "../lib/share";
 
 const uid = () =>
   typeof crypto !== "undefined" && crypto.randomUUID
@@ -65,6 +66,7 @@ export interface AppState extends AppData {
   // Persistence
   exportJSON: () => string;
   importJSON: (json: string) => void;
+  importSharedFit: (fit: SharedFit) => string; // returns the new scenario id
   resetAll: () => void;
 }
 
@@ -266,6 +268,38 @@ export const useStore = create<AppState>()(
           activeScenarioId: (d.scenarios ?? [])[0]?.id,
           comparisonBikeIds: [],
         });
+      },
+      importSharedFit: (fit) => {
+        const bikeId = uid();
+        const riderId = uid();
+        const scenarioId = uid();
+        const bike: Bike = { ...fit.bike, id: bikeId };
+        const rider: Rider = { ...fit.rider, id: riderId };
+        set((s) => {
+          // Bring along the rider's custom bar (if any) so currentBarId resolves.
+          const customBars =
+            fit.customBar && !s.customBars.some((b) => b.id === fit.customBar!.id)
+              ? [...s.customBars, fit.customBar]
+              : s.customBars;
+          const scenario: Scenario = {
+            id: scenarioId,
+            name: `${rider.name} on ${bike.name}`,
+            riderId,
+            bikeId,
+            adjust: fit.scenario.adjust,
+            crankCurrent: fit.scenario.crankCurrent,
+            crankTarget: fit.scenario.crankTarget,
+            barConstraint: fit.scenario.barConstraint,
+          };
+          return {
+            bikes: [...s.bikes, bike].sort(byName),
+            riders: [...s.riders, rider].sort(byName),
+            customBars,
+            scenarios: [...s.scenarios, scenario],
+            activeScenarioId: scenarioId,
+          };
+        });
+        return scenarioId;
       },
       resetAll: () => set({ ...initialData }),
     }),

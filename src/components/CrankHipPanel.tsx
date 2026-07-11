@@ -96,7 +96,12 @@ export default function CrankHipPanel({
                 <span className="font-medium">
                   {Math.abs(t.crankCurrent - t.crankTarget).toFixed(1)}mm
                 </span>{" "}
-                to keep leg extension (already reflected above).
+                to keep leg extension — with the bars fixed that also{" "}
+                {directionWord(t.implicitDropMm, "adds", "removes")}{" "}
+                <span className="font-medium">
+                  {Math.abs(t.implicitDropMm).toFixed(1)}mm
+                </span>{" "}
+                of drop, which the hip figure above already includes.
               </p>
               <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
                 To hold the same hip angle, either:

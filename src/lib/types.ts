@@ -201,7 +201,8 @@ export interface CrankTradeoff {
   crankCurrent: number;
   crankTarget: number;
   topOpeningMm: number; // TDC hip->pedal gap change = 2 * (current - target)
-  deltaHipDeg: number; // hip angle opened by the crank change (target - current)
+  implicitDropMm: number; // extra saddle->bar drop from raising the saddle (bars fixed)
+  deltaHipDeg: number; // hip angle opened by the crank change (target - current), net of the implicit drop
   saddleBackMm: number; // rearward saddle (+ bars back same) that restores baseline
   barDropMm: number; // extra bar drop that restores baseline
   isoCurve: { dx: number; dy: number }[]; // (saddle-back, bar-drop) mixes holding baseline

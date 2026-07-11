@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStore } from "./store/useStore";
+import { decodeFit, fitTokenFromHash } from "./lib/share";
 import { useSolverCatalog, useSeatposts, useBars } from "./store/selectors";
 import { computeScenario, solveComboForHand } from "./lib/scenario";
 import { permutationId } from "./lib/solver";
@@ -28,6 +29,32 @@ export default function App() {
   const updateRider = useStore((s) => s.updateRider);
   const updateAdjust = useStore((s) => s.updateAdjust);
   const updateScenario = useStore((s) => s.updateScenario);
+  const importSharedFit = useStore((s) => s.importSharedFit);
+
+  // A shared-fit link (#fit=…) drops the fitter's rider + bike into this
+  // browser's library so a client can open it at home. Runs once on load.
+  useEffect(() => {
+    const token = fitTokenFromHash(window.location.hash);
+    if (!token) return;
+    // Clear the hash so a refresh doesn't re-import.
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + window.location.search
+    );
+    const fit = decodeFit(token);
+    if (!fit) {
+      window.alert("This shared-fit link is invalid or corrupted.");
+      return;
+    }
+    if (
+      window.confirm(
+        `Load shared fit "${fit.rider.name}" on "${fit.bike.name}"? It will be added to your library.`
+      )
+    ) {
+      importSharedFit(fit);
+    }
+  }, [importSharedFit]);
 
   const catalog = useSolverCatalog();
   const seatposts = useSeatposts();
@@ -104,14 +131,14 @@ export default function App() {
               crankTarget={active.crankTarget}
               onChange={(patch) => updateScenario(active.id, patch)}
               comboForPoint={(dx, dy) => {
-                const t = computed?.hip?.tradeoff;
-                if (!computed?.target || !computed.hip || !t) return undefined;
-                // Recreate the point's hand target: crank-compensated hand,
-                // then bars back by dx and down by dy (see crankTradeoff).
-                const dc = t.crankCurrent - t.crankTarget;
+                if (!computed?.target || !computed.hip?.tradeoff)
+                  return undefined;
+                // Recreate the point's hand target. The bars are fixed through
+                // the crank swap, so from the current hand we just move back by
+                // dx and down by dy (see crankTradeoff).
                 const hand = {
                   x: computed.hip.hand.x - dx,
-                  y: computed.hip.hand.y + dc - dy,
+                  y: computed.hip.hand.y - dy,
                 };
                 return solveComboForHand(
                   bike,

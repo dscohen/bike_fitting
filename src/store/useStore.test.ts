@@ -198,3 +198,85 @@ describe("useStore — removeBike", () => {
     expect(useStore.getState().comparisonBikeIds).not.toContain(bikeId);
   });
 });
+
+describe("useStore — importSharedFit", () => {
+  it("adds the shared rider + bike + scenario with fresh ids and selects it", async () => {
+    const { useStore } = await import("./useStore");
+    const bikesBefore = useStore.getState().bikes.length;
+    const ridersBefore = useStore.getState().riders.length;
+
+    const fit = {
+      v: 1 as const,
+      bike: {
+        id: "shared-bike",
+        name: "Shared Frame 54",
+        reach: 381,
+        stack: 560,
+        headTubeAngle: 73,
+        seatTubeAngle: 73.5,
+      },
+      rider: {
+        id: "shared-rider",
+        name: "Shared Client",
+        fit: { saddleHeight: 700, saddleSetback: 85, handRef: "hood" as const, hoodX: 545, hoodY: 600 },
+        body: { heightMm: 1720 },
+      },
+      scenario: {
+        adjust: { dropDelta: 0, reachDelta: 0, saddleHeightDelta: 0, setbackDelta: 0 },
+        crankCurrent: 170,
+        crankTarget: 160,
+      },
+    };
+
+    const scenarioId = useStore.getState().importSharedFit(fit);
+    const s = useStore.getState();
+
+    expect(s.bikes.length).toBe(bikesBefore + 1);
+    expect(s.riders.length).toBe(ridersBefore + 1);
+    expect(s.activeScenarioId).toBe(scenarioId);
+
+    const scenario = s.scenarios.find((sc) => sc.id === scenarioId)!;
+    expect(scenario.crankTarget).toBe(160);
+    const bike = s.bikes.find((b) => b.id === scenario.bikeId)!;
+    const rider = s.riders.find((r) => r.id === scenario.riderId)!;
+    // Fresh ids, not the ids from the payload.
+    expect(bike.id).not.toBe("shared-bike");
+    expect(rider.id).not.toBe("shared-rider");
+    expect(bike.name).toBe("Shared Frame 54");
+    expect(rider.fit.saddleHeight).toBe(700);
+  });
+
+  it("brings along a referenced custom bar", async () => {
+    const { useStore } = await import("./useStore");
+    const fit = {
+      v: 1 as const,
+      bike: {
+        id: "b",
+        name: "Frame",
+        reach: 380,
+        stack: 560,
+        headTubeAngle: 73,
+        seatTubeAngle: 73.5,
+      },
+      rider: {
+        id: "r",
+        name: "Client",
+        fit: { saddleHeight: 700, saddleSetback: 85 },
+        currentBarId: "custom-bar-xyz",
+      },
+      customBar: {
+        id: "custom-bar-xyz",
+        name: "Client's Custom Bar",
+        reach: 82,
+        drop: 128,
+        custom: true,
+      },
+      scenario: { adjust: { dropDelta: 0, reachDelta: 0, saddleHeightDelta: 0 } },
+    };
+
+    useStore.getState().importSharedFit(fit);
+    expect(
+      useStore.getState().customBars.some((b) => b.id === "custom-bar-xyz")
+    ).toBe(true);
+  });
+});

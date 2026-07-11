@@ -89,6 +89,42 @@ describe("hip angle and crank opening", () => {
     expect(m.tradeoff!.topOpeningMm).toBeCloseTo(25, 6);
   });
 
+  it("includes the implicit drop from raising the saddle (bars fixed)", () => {
+    const dc = 172.5 - 155;
+    const sta = (STA * Math.PI) / 180;
+    const b = resolveBody({ heightMm: 1780 }, SETBACK, SH, STA, 172.5);
+    const hip = hipPt();
+    const hipOpened = {
+      x: hip.x - Math.cos(sta) * dc,
+      y: hip.y + Math.sin(sta) * dc,
+    };
+    const baseline = hipAngleFor(hip, hand, 172.5, b)!;
+    // Model: bars fixed, so the drop grows and partly offsets the leg opening.
+    const openedFixed = hipAngleFor(hipOpened, hand, 155, b)!;
+    // Hypothetical: bars also raised by dc (drop preserved) => a bigger opening.
+    const openedBarsRaised = hipAngleFor(
+      hipOpened,
+      { x: hand.x, y: hand.y + dc },
+      155,
+      b
+    )!;
+    expect(openedFixed).toBeGreaterThan(baseline); // still opens overall
+    expect(openedFixed).toBeLessThan(openedBarsRaised); // but less, due to added drop
+
+    const m = solveHipModel({
+      base: saddle,
+      evalAt: saddle,
+      hand,
+      body: { heightMm: 1780 },
+      staDeg: STA,
+      crankCurrent: 172.5,
+      crankTarget: 155,
+    });
+    expect(m.tradeoff!.implicitDropMm).toBeCloseTo(Math.sin(sta) * dc, 6);
+    // The reported opening matches the bars-fixed evaluation, not the raised one.
+    expect(m.tradeoff!.deltaHipDeg).toBeCloseTo(openedFixed - baseline, 6);
+  });
+
   it("moving the saddle back (setback slider) closes the hip angle", () => {
     const base = solveHipModel({
       base: saddle,
@@ -142,7 +178,7 @@ describe("crank trade-off restores the baseline hip angle", () => {
       x: m.hip.x - Math.cos(sta) * dc,
       y: m.hip.y + Math.sin(sta) * dc,
     };
-    const handOpened = { x: hand.x, y: hand.y + dc };
+    const handOpened = { x: hand.x, y: hand.y }; // bars fixed through the crank swap
     const baseline = hipAngleFor(m.hip, hand, 172.5, body)!;
     const restored = hipAngleFor(
       { x: hipOpened.x - t.saddleBackMm, y: hipOpened.y },
@@ -161,7 +197,7 @@ describe("crank trade-off restores the baseline hip angle", () => {
       x: m.hip.x - Math.cos(sta) * dc,
       y: m.hip.y + Math.sin(sta) * dc,
     };
-    const handOpened = { x: hand.x, y: hand.y + dc };
+    const handOpened = { x: hand.x, y: hand.y }; // bars fixed through the crank swap
     const baseline = hipAngleFor(m.hip, hand, 172.5, body)!;
     const restored = hipAngleFor(
       hipOpened,
@@ -180,7 +216,7 @@ describe("crank trade-off restores the baseline hip angle", () => {
       x: m.hip.x - Math.cos(sta) * dc,
       y: m.hip.y + Math.sin(sta) * dc,
     };
-    const handOpened = { x: hand.x, y: hand.y + dc };
+    const handOpened = { x: hand.x, y: hand.y }; // bars fixed through the crank swap
     const baseline = hipAngleFor(m.hip, hand, 172.5, body)!;
     expect(t.isoCurve.length).toBeGreaterThan(2);
     for (const { dx, dy } of t.isoCurve) {

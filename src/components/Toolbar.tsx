@@ -1,8 +1,9 @@
 // Top toolbar: pick/create the active scenario (rider × bike), manage the
 // library, export/import the whole dataset, and switch to the comparison view.
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useStore } from "../store/useStore";
+import { buildShareUrl, type SharedFit } from "../lib/share";
 import { Button } from "./ui";
 import ThemeToggle from "./ThemeToggle";
 
@@ -17,6 +18,7 @@ export default function Toolbar({ view, onView }: Props) {
     activeScenarioId,
     bikes,
     riders,
+    customBars,
     setActiveScenario,
     addScenario,
     removeScenario,
@@ -31,6 +33,40 @@ export default function Toolbar({ view, onView }: Props) {
 
   const active = scenarios.find((s) => s.id === activeScenarioId);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [shareLabel, setShareLabel] = useState("Share fit");
+
+  const shareFit = () => {
+    const bike = bikes.find((b) => b.id === active?.bikeId);
+    const rider = riders.find((r) => r.id === active?.riderId);
+    if (!active || !bike || !rider) return;
+    const customBar = rider.currentBarId
+      ? customBars.find((b) => b.id === rider.currentBarId)
+      : undefined;
+    const payload: SharedFit = {
+      v: 1,
+      bike,
+      rider,
+      customBar,
+      scenario: {
+        adjust: active.adjust,
+        crankCurrent: active.crankCurrent,
+        crankTarget: active.crankTarget,
+        barConstraint: active.barConstraint,
+      },
+    };
+    const url = buildShareUrl(payload);
+    const done = () => {
+      setShareLabel("Link copied!");
+      setTimeout(() => setShareLabel("Share fit"), 2000);
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(done, () =>
+        window.prompt("Copy this link to share the fit:", url)
+      );
+    } else {
+      window.prompt("Copy this link to share the fit:", url);
+    }
+  };
 
   const doExport = () => {
     const blob = new Blob([exportJSON()], { type: "application/json" });
@@ -208,6 +244,13 @@ export default function Toolbar({ view, onView }: Props) {
             Compare
           </button>
         </div>
+        <Button
+          variant="primary"
+          onClick={shareFit}
+          title="Copy a link that gives this rider + bike to a client to use at home"
+        >
+          {shareLabel}
+        </Button>
         <Button onClick={doExport}>Export</Button>
         <Button onClick={() => fileRef.current?.click()}>Import</Button>
         <input
