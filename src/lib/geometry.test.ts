@@ -4,6 +4,7 @@ import {
   solveSaddle,
   checkSeatpostInsertion,
   rotate,
+  dist,
 } from "./geometry";
 import { DEFAULT_SEATPOSTS } from "../data/seatposts";
 import type { SaddleTarget, Seatpost } from "./types";
@@ -28,29 +29,52 @@ describe("frontEndGeometry", () => {
       stemAngle: -6,
       barReach: 80,
     });
-    expect(near(g.barClamp.x, 475.32, 0.2)).toBe(true);
-    expect(near(g.barClamp.y, 603.21, 0.2)).toBe(true);
-    expect(near(g.hood.x, 555.32, 0.2)).toBe(true);
+    // Chain: head tube top -> 20mm spacers -> half of the 40mm stem clamp ->
+    // 100mm stem at -6deg. (Without the half-clamp term the clamp would sit at
+    // (475.32, 603.21) — 20mm short along the steerer.)
+    expect(near(g.barClamp.x, 469.47, 0.2)).toBe(true);
+    expect(near(g.barClamp.y, 622.33, 0.2)).toBe(true);
+    expect(near(g.hood.x, 549.47, 0.2)).toBe(true);
   });
 
-  it("a -17deg stem on a 73deg head tube is level", () => {
+  it("the stem extension leaves the steerer at half the clamp height", () => {
+    const params = { spacers: 20, stemLength: 100, stemAngle: -6, barReach: 0 };
+    const g = frontEndGeometry(bike, { ...params, stemClampHeight: 40 });
+    // stemAxis sits 20mm (half of 40) up the steerer from the top of the spacers.
+    expect(near(dist(g.stemBase, g.stemAxis), 20, 1e-6)).toBe(true);
+    expect(near(dist(g.stemBase, g.stemTop), 40, 1e-6)).toBe(true);
+
+    // A taller clamp pushes the bar clamp further up/back along the steerer.
+    const tall = frontEndGeometry(bike, { ...params, stemClampHeight: 60 });
+    expect(near(dist(g.barClamp, tall.barClamp), 10, 1e-6)).toBe(true); // half of +20mm
+    expect(tall.barClamp.y).toBeGreaterThan(g.barClamp.y);
+    expect(tall.barClamp.x).toBeLessThan(g.barClamp.x);
+
+    // A zero-height clamp reduces to running the stem straight off the spacers.
+    const zero = frontEndGeometry(bike, { ...params, stemClampHeight: 0 });
+    expect(near(dist(zero.stemAxis, zero.stemBase), 0, 1e-6)).toBe(true);
+  });
+
+  it("a -17deg stem on a 73deg head tube is level (about the stem axis)", () => {
     const g = frontEndGeometry(bike, {
       spacers: 0,
       stemLength: 100,
       stemAngle: -17,
       barReach: 0,
     });
-    expect(near(g.barClamp.y, g.stemBase.y, 0.2)).toBe(true);
+    expect(near(g.barClamp.y, g.stemAxis.y, 0.2)).toBe(true);
   });
 
   it("hits the user's clamp target (411/623/71.5 -> ~499,727)", () => {
-    // A +17deg / 120mm stem on 40mm spacers should land the CLAMP near (499,727).
+    // A +17deg / 120mm stem on 15mm spacers lands the CLAMP near (499,727).
+    // (Before the stem clamp was modelled this needed ~40mm of spacers — the
+    // clamp itself contributes ~19mm of rise.)
     const g = frontEndGeometry(
       { reach: 411, stack: 623, headTubeAngle: 71.5 },
-      { spacers: 40, stemLength: 120, stemAngle: 17, barReach: 0 }
+      { spacers: 15, stemLength: 120, stemAngle: 17, barReach: 0 }
     );
-    expect(near(g.barClamp.x, 499, 4)).toBe(true);
-    expect(near(g.barClamp.y, 727, 5)).toBe(true);
+    expect(near(g.barClamp.x, 499, 2)).toBe(true);
+    expect(near(g.barClamp.y, 727, 2)).toBe(true);
   });
 });
 
@@ -77,6 +101,18 @@ describe("solveSaddle", () => {
     expect(s.recommended).toBeDefined();
     // required offset ~ 8mm setback for these numbers
     expect(near(s.requiredOffset, 8, 1)).toBe(true);
+  });
+
+  it("lists all posts whose clamp lands within the usable rail, best first", () => {
+    const s = solveSaddle(bike, saddle(90), DEFAULT_SEATPOSTS);
+    // required ~8mm, halfRange 20mm => every default offset (0/15/20/25) fits.
+    expect(s.feasiblePosts.length).toBeGreaterThan(1);
+    expect(s.feasiblePosts).toContain(s.recommended);
+    expect(s.feasiblePosts[0]).toBe(s.recommended); // nearest = best is first
+    // All listed posts are within the usable rail of the required offset.
+    for (const p of s.feasiblePosts) {
+      expect(Math.abs(p.offset - s.requiredOffset)).toBeLessThanOrEqual(20 + 1e-6);
+    }
   });
 
   it("flags a too-forward saddle as needing a negative-offset post", () => {

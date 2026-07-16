@@ -12,12 +12,14 @@ import type {
   Seatpost,
   SeatpostInsertionCheck,
   HipModelResult,
+  FitEnvelope,
   Vec2,
 } from "./types";
 import { resolveFitTarget, FitInputError } from "./convert";
 import { solvePermutations, type SolverCatalog } from "./solver";
 import { solveSaddle, checkSeatpostInsertion } from "./geometry";
 import { solveHipModel, DEFAULT_CRANK } from "./biomech";
+import { buildFitEnvelope } from "./fitbox";
 
 /** A bar with built-in rise (e.g. Redshift Top Shelf, Surly Truck Stop). */
 export function isRiserBar(bar: Bar): boolean {
@@ -121,6 +123,7 @@ export interface ScenarioComputation {
   saddle?: SaddleSolution;
   seatpostInsertion?: SeatpostInsertionCheck;
   hip?: HipModelResult;
+  envelope?: FitEnvelope;
   error?: string;
 }
 
@@ -181,5 +184,13 @@ export function computeScenario(
     crankTarget: cranks?.target,
   });
 
-  return { target, permutations, saddle, seatpostInsertion, hip };
+  // The envelope is "given a bar setup": prefer the rider's own bar, else the
+  // one currently being recommended — never an arbitrary catalog-order pick.
+  const envelopeBar =
+    bars.find((b) => b.id === rider.currentBarId) ??
+    permutations[0]?.bar ??
+    bars[0];
+  const envelope = buildFitEnvelope(bike, target, catalog.stems, envelopeBar);
+
+  return { target, permutations, saddle, seatpostInsertion, hip, envelope };
 }

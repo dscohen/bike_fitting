@@ -1,11 +1,15 @@
 // Compare the active rider's fit across several bikes side by side: best
-// permutation, feasibility, and a mini drawing per bike.
+// permutation, feasibility, and a per-bike visual. Defaults to the fit-range
+// envelope, which is drawn at a fixed scale anchored on the rider's target — so
+// the frames are directly comparable at a glance (the cockpit diagram is still
+// available per-bike but auto-fits each frame, which hides that difference).
 
 import { useState } from "react";
 import { useStore } from "../store/useStore";
 import { useSolverCatalog, useSeatposts } from "../store/selectors";
 import { computeScenario } from "../lib/scenario";
 import SideView from "./SideView";
+import { EnvelopeChart } from "./EnvelopeChart";
 import { FlagList } from "./Flags";
 
 const NO_ADJUST = { dropDelta: 0, reachDelta: 0, saddleHeightDelta: 0 };
@@ -24,6 +28,7 @@ export default function ComparisonView() {
   const [selectedBikes, setSelectedBikes] = useState<string[]>(
     bikes.map((b) => b.id)
   );
+  const [view, setView] = useState<"range" | "diagram">("range");
 
   const rider = riders.find((r) => r.id === riderId);
 
@@ -71,6 +76,22 @@ export default function ComparisonView() {
             {b.name}
           </label>
         ))}
+
+        <div className="ml-auto flex overflow-hidden rounded border border-slate-300 dark:border-slate-600">
+          {(["range", "diagram"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`px-2.5 py-1 text-xs ${
+                view === v
+                  ? "bg-sky-600 text-white"
+                  : "bg-white text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+              }`}
+            >
+              {v === "range" ? "Fit range" : "Diagram"}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="grid flex-1 auto-rows-min gap-3 overflow-y-auto md:grid-cols-2 xl:grid-cols-3">
@@ -108,15 +129,20 @@ export default function ComparisonView() {
                 reach {bike.reach} · stack {bike.stack} · HTA {bike.headTubeAngle}°
               </div>
 
-              <div className="my-2 h-40">
-                {c.target && (
+              <div className="my-2 h-44">
+                {view === "range" && c.envelope ? (
+                  <EnvelopeChart
+                    envelope={c.envelope}
+                    className="h-full w-full rounded bg-slate-50 dark:bg-slate-800"
+                  />
+                ) : c.target ? (
                   <SideView
                     bike={bike}
                     target={c.target}
                     permutation={best}
                     saddle={c.saddle}
                   />
-                )}
+                ) : null}
               </div>
 
               {c.error ? (

@@ -1,9 +1,11 @@
 // Edit a rider's fit target. Hand target can be the hoods or the stem/bar clamp
 // (bar-top). Saddle inputs are nose-referenced with rail/clamp geometry.
 
+import { useState } from "react";
 import type { Bar, Rider, RiderBody, RiderFitInput } from "../lib/types";
-import { Section, NumberField, TextField, HelpTip } from "./ui";
+import { Section, NumberField, TextField, Button, HelpTip } from "./ui";
 import { SADDLE_DEFAULTS } from "../lib/convert";
+import { useStore } from "../store/useStore";
 
 interface Props {
   rider: Rider;
@@ -18,6 +20,32 @@ export default function RiderPanel({ rider, bars, onChange }: Props) {
   const body = rider.body ?? {};
   const setBody = (patch: Partial<RiderBody>) =>
     onChange({ body: { ...body, ...patch } });
+
+  const addBar = useStore((s) => s.addBar);
+  const removeBar = useStore((s) => s.removeBar);
+  const currentBar = bars.find((b) => b.id === rider.currentBarId);
+  const [newBar, setNewBar] = useState<{
+    open: boolean;
+    name: string;
+    reach?: number;
+    drop?: number;
+    rise?: number;
+  }>({ open: false, name: "", reach: undefined, drop: undefined, rise: undefined });
+
+  const saveNewBar = () => {
+    if (newBar.reach == null || !(newBar.reach > 0)) return;
+    const name =
+      newBar.name.trim() ||
+      `Custom bar (${newBar.reach}mm${newBar.rise ? `, ${newBar.rise}mm rise` : ""})`;
+    const id = addBar({
+      name,
+      reach: newBar.reach,
+      drop: newBar.drop ?? 0,
+      hoodRise: newBar.rise ?? 0,
+    });
+    onChange({ currentBarId: id });
+    setNewBar({ open: false, name: "", reach: undefined, drop: undefined, rise: undefined });
+  };
 
   const mode: "hood" | "clamp" =
     fit.handRef ?? (fit.barTopX != null || fit.barTopY != null ? "clamp" : "hood");
@@ -118,10 +146,91 @@ export default function RiderPanel({ rider, bars, onChange }: Props) {
             {bars.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
+                {b.custom ? " (custom)" : ""}
               </option>
             ))}
           </select>
         </label>
+
+        <div className="mt-1 flex items-center gap-3 text-[10px]">
+          {!newBar.open && (
+            <button
+              type="button"
+              onClick={() => setNewBar((n) => ({ ...n, open: true }))}
+              className="text-sky-600 hover:underline dark:text-sky-400"
+            >
+              + Specify a new bar
+            </button>
+          )}
+          {currentBar?.custom && (
+            <button
+              type="button"
+              onClick={() => removeBar(currentBar.id)}
+              className="text-red-600 hover:underline dark:text-red-400"
+            >
+              Remove "{currentBar.name}"
+            </button>
+          )}
+        </div>
+
+        {newBar.open && (
+          <div className="mt-2 rounded border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800">
+            <p className="mb-2 flex items-center text-[11px] font-medium text-slate-600 dark:text-slate-300">
+              New bar
+              <HelpTip text="Adds a reusable bar to the catalog so you don't have to re-enter it. It becomes available in every rider's picker and in the solver's bar search." />
+            </p>
+            <TextField
+              label="Name"
+              value={newBar.name}
+              onChange={(name) => setNewBar((n) => ({ ...n, name }))}
+            />
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <NumberField
+                label="Reach"
+                value={newBar.reach}
+                onChange={(reach) => setNewBar((n) => ({ ...n, reach }))}
+                help="Clamp center to the hoods, horizontal — the number that trades off against stem length."
+              />
+              <NumberField
+                label="Drop"
+                value={newBar.drop}
+                placeholder="0"
+                onChange={(drop) => setNewBar((n) => ({ ...n, drop }))}
+                help="Hoods to the drop ends (informational)."
+              />
+              <NumberField
+                label="Rise"
+                value={newBar.rise}
+                placeholder="0"
+                onChange={(rise) => setNewBar((n) => ({ ...n, rise }))}
+                help="Built-in vertical rise from the clamp to the hoods (riser/gravel bars). 0 for a normal drop bar."
+              />
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <Button
+                variant="primary"
+                onClick={saveNewBar}
+                title={newBar.reach == null ? "Enter a reach first" : "Add this bar"}
+              >
+                Add bar
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() =>
+                  setNewBar({ open: false, name: "", reach: undefined, drop: undefined, rise: undefined })
+                }
+              >
+                cancel
+              </Button>
+              {newBar.reach == null && (
+                <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                  reach required
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
           Called out in the permutations list; can be used to lock the search to
           this bar only (see Bar search below).

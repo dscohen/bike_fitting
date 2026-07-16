@@ -9,8 +9,14 @@ export const CONSTRAINTS = {
 
   stemMin: 60,
   stemMax: 140,
-  stemLongWarn: 120, // long, less stable
-  stemShortWarn: 70, // short, twitchy
+  // Stem lengths that define the "reasonable fitting range" envelope: the core
+  // band is comfortable, the wider band is workable but at the limit.
+  fitStemCore: [90, 120] as [number, number],
+  fitStemWarn: [80, 130] as [number, number],
+  // Height of a stem's steerer clamp when it doesn't specify one. The stem's
+  // extension leaves the steerer at half this above the spacers (~typical road
+  // stem "stack height" is 40mm).
+  defaultStemClampHeight: 40, // mm
 
   defaultMaxSpacerStack: 70, // mm
   spacerWarn: 60, // mm — approaching the usual limit
@@ -50,23 +56,13 @@ export function frontEndFlags(ctx: FrontEndFlagContext): Flag[] {
     });
   }
 
+  // A stem beyond the sane maximum is a hard error (guards absurd custom stems);
+  // we intentionally don't warn on merely long/short stems.
   if (stem.length > CONSTRAINTS.stemMax) {
     flags.push({
       code: "stem-too-long",
       severity: "error",
       message: `Stem ${stem.length}mm exceeds the sane maximum (${CONSTRAINTS.stemMax}mm).`,
-    });
-  } else if (stem.length >= CONSTRAINTS.stemLongWarn) {
-    flags.push({
-      code: "stem-long",
-      severity: "warning",
-      message: `Stem ${stem.length}mm is long — handling may feel sluggish.`,
-    });
-  } else if (stem.length <= CONSTRAINTS.stemShortWarn) {
-    flags.push({
-      code: "stem-short",
-      severity: "warning",
-      message: `Stem ${stem.length}mm is short — steering may feel twitchy.`,
     });
   }
 

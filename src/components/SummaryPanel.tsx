@@ -1,6 +1,11 @@
 // At-a-glance fit numbers and seatpost/rail feasibility for the active scenario.
 
-import type { FitTarget, SaddleSolution, SeatpostInsertionCheck } from "../lib/types";
+import type {
+  FitTarget,
+  SaddleSolution,
+  SeatpostInsertionCheck,
+  Seatpost,
+} from "../lib/types";
 import { computedDrop, computedReach } from "../lib/scenario";
 import { Section } from "./ui";
 import { FlagList } from "./Flags";
@@ -60,6 +65,12 @@ export default function SummaryPanel({
                   : ".")
               : ""}
           </p>
+          {saddle.recommended && (
+            <AltPosts
+              recommended={saddle.recommended}
+              feasible={saddle.feasiblePosts}
+            />
+          )}
           <div className="mt-1">
             <FlagList flags={saddle.flags} />
           </div>
@@ -83,13 +94,36 @@ export default function SummaryPanel({
             </span>
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-300">
-            Needs {seatpostInsertion.requiredExposedLength.toFixed(0)}mm of post
-            exposed above the frame
-            {seatpostInsertion.maxSafeExposure != null && seatpostInsertion.post
-              ? ` — ${seatpostInsertion.post.name} allows up to ${seatpostInsertion.maxSafeExposure.toFixed(
-                  0
-                )}mm safely.`
-              : "."}
+            The saddle sits{" "}
+            {seatpostInsertion.requiredExposedLength.toFixed(0)}mm above the
+            frame's seat tube, so the post must stick out that far.
+            {seatpostInsertion.maxSafeExposure != null &&
+            seatpostInsertion.post ? (
+              <>
+                {" "}
+                A {seatpostInsertion.post.name}
+                {seatpostInsertion.post.length != null
+                  ? ` (${seatpostInsertion.post.length}mm long`
+                  : ""}
+                {seatpostInsertion.post.minInsert != null
+                  ? `, ${seatpostInsertion.post.minInsert}mm min-insertion`
+                  : ""}
+                {seatpostInsertion.post.length != null ? ")" : ""} can stick out
+                at most{" "}
+                <span className="font-medium">
+                  {seatpostInsertion.maxSafeExposure.toFixed(0)}mm
+                </span>{" "}
+                before it's inserted less than its minimum mark
+                {seatpostInsertion.feasible
+                  ? ` — fine, with ${(
+                      seatpostInsertion.maxSafeExposure -
+                      seatpostInsertion.requiredExposedLength
+                    ).toFixed(0)}mm to spare.`
+                  : " — too little; use a longer post (or one with a lower min-insertion mark)."}
+              </>
+            ) : (
+              "."
+            )}
           </p>
           <div className="mt-1">
             <FlagList flags={seatpostInsertion.flags} />
@@ -97,6 +131,27 @@ export default function SummaryPanel({
         </div>
       )}
     </Section>
+  );
+}
+
+// Small note listing the other catalog posts whose clamp still lands within the
+// usable rail (the recommended one centers it; these work off-center).
+function AltPosts({
+  recommended,
+  feasible,
+}: {
+  recommended: Seatpost;
+  feasible: Seatpost[];
+}) {
+  const others = feasible
+    .filter((p) => p.id !== recommended.id)
+    .sort((a, b) => a.offset - b.offset);
+  if (others.length === 0) return null;
+  return (
+    <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">
+      Best keeps the saddle centered; also works on{" "}
+      {others.map((p) => `${p.offset}mm`).join(", ")} offset.
+    </p>
   );
 }
 

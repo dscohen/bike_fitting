@@ -101,6 +101,7 @@ export function solvePermutations(
           spacers,
           stemLength: stem.length,
           stemAngle: stem.angle,
+          stemClampHeight: stem.clampHeight,
           barReach: bar?.reach ?? 0,
           barHoodRise: bar?.hoodRise,
         });

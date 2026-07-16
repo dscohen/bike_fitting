@@ -280,3 +280,34 @@ describe("useStore — importSharedFit", () => {
     ).toBe(true);
   });
 });
+
+describe("useStore — custom bars", () => {
+  it("addBar returns the new id and puts the bar in customBars", async () => {
+    const { useStore } = await import("./useStore");
+    const id = useStore.getState().addBar({
+      name: "Test Riser",
+      reach: 82,
+      drop: 120,
+      hoodRise: 25,
+    });
+    expect(typeof id).toBe("string");
+    const bar = useStore.getState().customBars.find((b) => b.id === id);
+    expect(bar).toMatchObject({ name: "Test Riser", reach: 82, hoodRise: 25, custom: true });
+  });
+
+  it("removeBar deletes the bar and clears it from riders that referenced it", async () => {
+    const { useStore } = await import("./useStore");
+    const id = useStore.getState().addBar({ name: "Doomed Bar", reach: 90, drop: 130 });
+    const riderId = useStore.getState().addRider({
+      name: "Bar-Ref Rider",
+      fit: { saddleHeight: 700 },
+      currentBarId: id,
+    });
+
+    useStore.getState().removeBar(id);
+
+    expect(useStore.getState().customBars.some((b) => b.id === id)).toBe(false);
+    const rider = useStore.getState().riders.find((r) => r.id === riderId)!;
+    expect(rider.currentBarId).toBeUndefined();
+  });
+});

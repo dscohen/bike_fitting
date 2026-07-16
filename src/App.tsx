@@ -14,6 +14,7 @@ import CrankHipPanel from "./components/CrankHipPanel";
 import SideView from "./components/SideView";
 import PermutationsTable from "./components/PermutationsTable";
 import SummaryPanel from "./components/SummaryPanel";
+import FitBoxPanel from "./components/FitBoxPanel";
 import ComparisonView from "./components/ComparisonView";
 import { Section } from "./components/ui";
 
@@ -179,6 +180,9 @@ export default function App() {
                 saddle={computed.saddle}
                 seatpostInsertion={computed.seatpostInsertion}
               />
+            )}
+            {computed?.envelope && !computed.error && (
+              <FitBoxPanel envelope={computed.envelope} />
             )}
             <Section title="Viable permutations">
               {computed?.target && !computed.error ? (

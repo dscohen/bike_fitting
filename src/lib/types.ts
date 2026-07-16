@@ -105,6 +105,10 @@ export interface Stem {
   id: string;
   length: number; // mm, clamp center to steerer center
   angle: number; // degrees, relative to perpendicular-to-steerer (negative = drop)
+  // mm, height of the steerer clamp ("stack height"). The stem's extension
+  // leaves the steerer at HALF this height above the spacer stack, so it shifts
+  // the bar clamp up/back along the steerer. Defaults via CONSTRAINTS.
+  clampHeight?: number;
   clampStandard?: "31.8" | "35"; // metadata only
   custom?: boolean;
 }
@@ -162,7 +166,8 @@ export interface SaddleSolution {
   nose: Vec2; // BB-origin saddle nose
   clampPoint: Vec2; // where the seatpost clamps the rails
   requiredOffset: number; // mm setback the post must provide to center the clamp
-  recommended?: Seatpost; // closest feasible catalog post
+  recommended?: Seatpost; // closest feasible catalog post (best centers the clamp)
+  feasiblePosts: Seatpost[]; // all catalog posts whose clamp lands within the usable rail
   railClampOffset?: number; // mm from usable-rail start to the clamp center
   flags: Flag[];
   feasible: boolean;
@@ -176,6 +181,41 @@ export interface SeatpostInsertionCheck {
   post?: Seatpost; // the post the check was evaluated against, if any
   flags: Flag[];
   feasible: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Fit range envelope ("how much room does this bike + bar give me?")
+// ---------------------------------------------------------------------------
+
+// How far the target can move in each direction before leaving a region (mm).
+export interface FitRoom {
+  forward: number;
+  back: number;
+  up: number;
+  down: number;
+}
+
+// The reachable hand positions for a bike + bar, swept over a band of stem
+// lengths and the whole spacer range. `core` is the comfortable stem band,
+// `warn` the wider workable one. Both are convex hulls (BB-origin mm).
+export interface FitEnvelope {
+  handMode: "hood" | "clamp";
+  bar?: Bar; // the bar this envelope assumes (hood mode only)
+  core: Vec2[];
+  warn: Vec2[];
+  target: Vec2; // the rider's hand target, for comparison
+  inCore: boolean;
+  inWarn: boolean;
+  coreDistance: number; // mm the target sits outside the comfortable region (0 = inside)
+  warnDistance: number; // mm the target sits outside the workable region (0 = inside)
+  // Distance from the target out to a region's edge, per direction (mm).
+  // `room` is against the comfortable region, `roomWarn` the workable one; each
+  // is only present when the target is actually inside that region.
+  room?: FitRoom;
+  roomWarn?: FitRoom;
+  stemCore: [number, number];
+  stemWarn: [number, number];
+  spacerMax: number;
 }
 
 // ---------------------------------------------------------------------------

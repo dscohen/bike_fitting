@@ -53,7 +53,8 @@ export interface AppState extends AppData {
   removeRider: (id: string) => void;
   // Custom parts
   addStem: (stem: Omit<Stem, "id">) => void;
-  addBar: (bar: Omit<Bar, "id">) => void;
+  addBar: (bar: Omit<Bar, "id">) => string;
+  removeBar: (id: string) => void;
   addSeatpost: (post: Omit<Seatpost, "id">) => void;
   // Scenarios
   addScenario: (s: Omit<Scenario, "id">) => string;
@@ -99,7 +100,7 @@ const seedRiders: Rider[] = [
       saddleSetback: 90,
       handRef: "hood",
       hoodX: 560,
-      hoodY: 590,
+      hoodY: 620,
     },
     body: { heightMm: 1780 },
   },
@@ -182,9 +183,20 @@ export const useStore = create<AppState>()(
         set((s) => ({
           customStems: [...s.customStems, { ...stem, id: uid(), custom: true }],
         })),
-      addBar: (bar) =>
+      addBar: (bar) => {
+        const id = uid();
         set((s) => ({
-          customBars: [...s.customBars, { ...bar, id: uid(), custom: true }],
+          customBars: [...s.customBars, { ...bar, id, custom: true }],
+        }));
+        return id;
+      },
+      removeBar: (id) =>
+        set((s) => ({
+          customBars: s.customBars.filter((b) => b.id !== id),
+          // Drop the reference from any rider that used this bar.
+          riders: s.riders.map((r) =>
+            r.currentBarId === id ? { ...r, currentBarId: undefined } : r
+          ),
         })),
       addSeatpost: (post) =>
         set((s) => ({

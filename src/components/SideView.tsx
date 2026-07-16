@@ -42,6 +42,7 @@ export default function SideView({ bike, target, permutation, saddle, hip }: Pro
     spacers: permutation?.spacers ?? 20,
     stemLength: permutation?.stem.length ?? 100,
     stemAngle: permutation?.stem.angle ?? -6,
+    stemClampHeight: permutation?.stem.clampHeight,
     barReach: permutation?.bar?.reach ?? (target.handMode === "hood" ? 80 : 0),
     barHoodRise: permutation?.bar?.hoodRise,
   });
@@ -62,7 +63,7 @@ export default function SideView({ bike, target, permutation, saddle, hip }: Pro
     y: Math.sin(sta) * target.saddle.saddleHeight,
   };
 
-  const pts = [BB, fe.headTubeTop, fe.stemBase, fe.barClamp, fe.hood, target.hand, nose, tail, axisPoint];
+  const pts = [BB, fe.headTubeTop, fe.stemBase, fe.stemTop, fe.barClamp, fe.hood, target.hand, nose, tail, axisPoint];
   if (rider) pts.push(rider.hip, rider.kneeTop, rider.pedalTop, rider.shoulder);
 
   const minX = Math.min(...pts.map((p) => p.x));
@@ -109,7 +110,8 @@ export default function SideView({ bike, target, permutation, saddle, hip }: Pro
   // Dimension breakdown for each component: (from, to) in world mm.
   const dims: { from: Vec2; to: Vec2 }[] = [
     { from: fe.headTubeTop, to: fe.stemBase }, // spacers
-    { from: fe.stemBase, to: fe.barClamp }, // stem
+    { from: fe.stemBase, to: fe.stemAxis }, // half the stem's steerer clamp
+    { from: fe.stemAxis, to: fe.barClamp }, // stem
     ...(target.handMode === "hood" ? [{ from: fe.barClamp, to: fe.hood }] : []), // bar
     { from: BB, to: axisPoint }, // seat tube
     { from: axisPoint, to: clamp }, // seatpost setback
@@ -131,8 +133,10 @@ export default function SideView({ bike, target, permutation, saddle, hip }: Pro
 
       {/* spacers */}
       <line x1={sx(fe.headTubeTop)} y1={sy(fe.headTubeTop)} x2={sx(fe.stemBase)} y2={sy(fe.stemBase)} stroke="#0ea5e9" strokeWidth={5} strokeLinecap="round" />
+      {/* stem's steerer clamp (the extension leaves from its middle) */}
+      <line x1={sx(fe.stemBase)} y1={sy(fe.stemBase)} x2={sx(fe.stemTop)} y2={sy(fe.stemTop)} stroke="var(--sideview-ink)" strokeWidth={9} strokeLinecap="butt" />
       {/* stem */}
-      <line x1={sx(fe.stemBase)} y1={sy(fe.stemBase)} x2={sx(fe.barClamp)} y2={sy(fe.barClamp)} stroke="var(--sideview-ink)" strokeWidth={4} strokeLinecap="round" />
+      <line x1={sx(fe.stemAxis)} y1={sy(fe.stemAxis)} x2={sx(fe.barClamp)} y2={sy(fe.barClamp)} stroke="var(--sideview-ink)" strokeWidth={4} strokeLinecap="round" />
       {/* bar reach to hoods (hood mode) */}
       {target.handMode === "hood" && (
         <line x1={sx(fe.barClamp)} y1={sy(fe.barClamp)} x2={sx(fe.hood)} y2={sy(fe.hood)} stroke="var(--sideview-ink-soft)" strokeWidth={3} strokeLinecap="round" />

@@ -131,7 +131,7 @@ export default function Toolbar({ view, onView }: Props) {
   const newRider = () => {
     const id = addRider({
       name: `Rider ${riders.length + 1}`,
-      fit: { saddleHeight: 720, saddleSetback: 90, handRef: "hood", hoodX: 560, hoodY: 590 },
+      fit: { saddleHeight: 720, saddleSetback: 90, handRef: "hood", hoodX: 560, hoodY: 620 },
     });
     if (active) updateScenario(active.id, { riderId: id });
   };

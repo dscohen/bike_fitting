@@ -12,7 +12,7 @@ import type {
   SeatpostInsertionCheck,
   Flag,
 } from "./types";
-import { hasError } from "./constraints";
+import { hasError, CONSTRAINTS } from "./constraints";
 
 const DEG = Math.PI / 180;
 
@@ -38,7 +38,9 @@ export function rotate(v: Vec2, deg: number): Vec2 {
 
 export interface FrontEndGeometry {
   headTubeTop: Vec2; // top of head tube / steerer at the frame (reach, stack)
-  stemBase: Vec2; // top of spacer stack, where the stem clamps the steerer
+  stemBase: Vec2; // top of spacer stack = bottom of the stem's steerer clamp
+  stemAxis: Vec2; // where the stem's extension leaves the steerer (mid-clamp)
+  stemTop: Vec2; // top of the stem's steerer clamp
   barClamp: Vec2; // stem/handlebar clamp center
   hood: Vec2; // hoods (hand position)
 }
@@ -47,12 +49,19 @@ export interface FrontEndParams {
   spacers: number; // mm of spacers below the stem
   stemLength: number; // mm, clamp center to steerer center
   stemAngle: number; // deg, relative to perpendicular-to-steerer (neg = drop)
+  stemClampHeight?: number; // mm, steerer-clamp height (default via CONSTRAINTS)
   barReach: number; // mm, clamp -> hoods horizontal-ish
   barHoodRise?: number; // mm, clamp -> hoods vertical (usually ~0)
 }
 
 /**
  * Build the front-end chain from frame reach/stack up through the hoods.
+ *
+ * The stem's extension does NOT leave the steerer at the top of the spacers: it
+ * leaves from the middle of the stem's steerer clamp, i.e. half the clamp height
+ * further up the steerer. That half-clamp offset moves the bar clamp up and back
+ * (~19mm up / ~6mm back for a 40mm clamp on a 73deg head tube), so it has to be
+ * part of the chain.
  *
  * Sanity check: a 0deg stem rises (90 - HTA) from horizontal, so a -17deg stem
  * on a 73deg head tube ends up level -- matching how real cockpits behave.
@@ -68,16 +77,25 @@ export function frontEndGeometry(
   // Forward perpendicular to the steerer (a 0deg stem lies along this).
   const perp: Vec2 = { x: Math.sin(hta), y: Math.cos(hta) };
 
+  const upSteerer = (from: Vec2, mm: number): Vec2 =>
+    add(from, { x: steererUp.x * mm, y: steererUp.y * mm });
+
   const headTubeTop: Vec2 = { x: bike.reach, y: bike.stack };
 
-  const alongSteerer = params.spacers + (bike.headsetStack ?? 0);
-  const stemBase = add(headTubeTop, {
-    x: steererUp.x * alongSteerer,
-    y: steererUp.y * alongSteerer,
-  });
+  // Headset cap + spacers bring us to the bottom of the stem's clamp.
+  const stemBase = upSteerer(
+    headTubeTop,
+    params.spacers + (bike.headsetStack ?? 0)
+  );
+
+  const clampHeight =
+    params.stemClampHeight ?? CONSTRAINTS.defaultStemClampHeight;
+  // The extension leaves the steerer from mid-clamp.
+  const stemAxis = upSteerer(stemBase, clampHeight / 2);
+  const stemTop = upSteerer(stemBase, clampHeight);
 
   const stemDir = rotate(perp, params.stemAngle);
-  const barClamp = add(stemBase, {
+  const barClamp = add(stemAxis, {
     x: stemDir.x * params.stemLength,
     y: stemDir.y * params.stemLength,
   });
@@ -87,7 +105,7 @@ export function frontEndGeometry(
     y: params.barHoodRise ?? 0,
   });
 
-  return { headTubeTop, stemBase, barClamp, hood };
+  return { headTubeTop, stemBase, stemAxis, stemTop, barClamp, hood };
 }
 
 // ---------------------------------------------------------------------------
@@ -130,16 +148,15 @@ export function solveSaddle(
   const requiredOffset =
     railCenter - (noseX - axisX - saddle.noseToRailStart);
 
-  // Best feasible post = offset closest to requiredOffset within +/- halfRange.
-  let best: Seatpost | undefined;
-  let bestDelta = Infinity;
-  for (const post of posts) {
-    const delta = Math.abs(post.offset - requiredOffset);
-    if (delta <= halfRange + 1e-6 && delta < bestDelta) {
-      best = post;
-      bestDelta = delta;
-    }
-  }
+  // Every post whose clamp lands within the usable rail is feasible (nearest to
+  // requiredOffset first); the best one centers the clamp.
+  const feasiblePosts = posts
+    .filter((p) => Math.abs(p.offset - requiredOffset) <= halfRange + 1e-6)
+    .sort(
+      (a, b) =>
+        Math.abs(a.offset - requiredOffset) - Math.abs(b.offset - requiredOffset)
+    );
+  const best: Seatpost | undefined = feasiblePosts[0];
 
   const usedOffset = best?.offset ?? requiredOffset;
   const clampX = axisX - usedOffset;
@@ -184,6 +201,7 @@ export function solveSaddle(
     clampPoint: { x: clampX, y: saddleTopY },
     requiredOffset,
     recommended: best,
+    feasiblePosts,
     railClampOffset: best ? railClampOffset : undefined,
     flags,
     feasible: !!best,
@@ -234,13 +252,13 @@ export function checkSeatpostInsertion(
       flags.push({
         code: "seatpost-insufficient-insertion",
         severity: "error",
-        message: `Needs ${requiredExposedLength.toFixed(
+        message: `The saddle sits ${requiredExposedLength.toFixed(
           0
-        )}mm of post exposed above the frame, but ${post.name} (${post.length}mm, ${
+        )}mm above the frame, but ${post.name} (${post.length}mm long, ${
           post.minInsert
-        }mm min insert) only allows ${maxSafeExposure.toFixed(
+        }mm min-insertion) can stick out at most ${maxSafeExposure.toFixed(
           0
-        )}mm safely — use a longer post or one with a lower min-insert mark.`,
+        )}mm before it's inserted past its minimum mark — use a longer post or one with a lower min-insertion mark.`,
       });
     }
   }
