@@ -146,6 +146,34 @@ describe("buildFitEnvelope", () => {
     expect(e.room).toBeUndefined();
   });
 
+  it("full room reports the region's whole extent, not just the axis-aligned ray", () => {
+    // Push the target toward the forward tip of the region: the strict upward
+    // ray gets cut off there, but the region still reaches far higher if you
+    // give back a little reach.
+    const g = frontEndGeometry(bike, {
+      spacers: 4,
+      stemLength: 119,
+      stemAngle: 6,
+      barReach: bar.reach,
+      barHoodRise: bar.hoodRise,
+    });
+    const e = buildFitEnvelope(bike, target(g.hood), DEFAULT_STEMS, bar)!;
+    expect(e.inCore).toBe(true);
+    expect(e.fullRoom).toBeDefined();
+
+    // Full range is never smaller than the strict range, in any direction.
+    for (const k of ["forward", "back", "up", "down"] as const) {
+      expect(e.fullRoom![k]).toBeGreaterThanOrEqual(e.room![k] - 1e-6);
+    }
+    // And here it's dramatically bigger upward — the point of the hover view.
+    expect(e.fullRoom!.up).toBeGreaterThan(e.room!.up + 20);
+
+    // The full box really is the region's bounding box around the target.
+    const t = g.hood;
+    expect(t.y + e.fullRoom!.up).toBeCloseTo(Math.max(...e.core.map((p) => p.y)), 6);
+    expect(t.x - e.fullRoom!.back).toBeCloseTo(Math.min(...e.core.map((p) => p.x)), 6);
+  });
+
   it("a wildly far target is outside both regions", () => {
     const e = buildFitEnvelope(bike, target({ x: 900, y: 640 }), DEFAULT_STEMS, bar)!;
     expect(e.inCore).toBe(false);

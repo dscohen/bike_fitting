@@ -1,7 +1,7 @@
 // The reachable-range envelope chart, shared by the fit panel and the bike
 // comparison view.
 
-import { useId } from "react";
+import { useId, useRef, useState } from "react";
 import type { FitEnvelope, Vec2 } from "../lib/types";
 
 export const CORE = "#0ea5e9"; // sky — comfortable
@@ -29,6 +29,10 @@ export function EnvelopeChart({
   className?: string;
 }) {
   const clipId = useId();
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [hover, setHover] = useState(false);
+  const [cursor, setCursor] = useState<Vec2 | null>(null); // world mm
+
   const t = envelope.target;
   // Uniform scale — a mm across reads the same as a mm up, so the arrows and
   // the shape are honest.
@@ -38,15 +42,35 @@ export function EnvelopeChart({
 
   // Arrows measure the comfortable range when we're in it, else the workable one.
   const room = envelope.room ?? envelope.roomWarn;
+  const full = envelope.room ? envelope.fullRoom : envelope.fullRoomWarn;
   const roomColor = envelope.room ? CORE : WARN;
   const tx = sx(t);
   const ty = sy(t);
 
+  // Screen -> world, so the hover readout is exact rather than eyeballed.
+  const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const svg = svgRef.current;
+    const ctm = svg?.getScreenCTM?.();
+    if (!ctm) return;
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+    setCursor({
+      x: t.x + (p.x - W / 2) / SCALE,
+      y: t.y - (p.y - (PAD + WIN_UP * SCALE)) / SCALE,
+    });
+  };
+
   return (
     <svg
+      ref={svgRef}
       viewBox={`0 0 ${W} ${H}`}
       className={className}
       preserveAspectRatio="xMidYMid meet"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => {
+        setHover(false);
+        setCursor(null);
+      }}
+      onMouseMove={onMove}
     >
       <defs>
         <clipPath id={clipId}>
@@ -72,6 +96,29 @@ export function EnvelopeChart({
         />
       </g>
 
+      {/* On hover: the region's FULL extent from the target. The strict arrows
+          hold the other axis fixed, so a target near a pointed corner looks
+          boxed in when it can actually go further by trading a little reach. */}
+      {hover && full && (
+        <g clipPath={`url(#${clipId})`} data-testid="full-range">
+          <rect
+            x={sx({ x: t.x - full.back, y: t.y })}
+            y={sy({ x: t.x, y: t.y + full.up })}
+            width={(full.back + full.forward) * SCALE}
+            height={(full.up + full.down) * SCALE}
+            fill="none"
+            stroke={roomColor}
+            strokeWidth={1}
+            strokeDasharray="2 3"
+            opacity={0.9}
+          />
+          <EdgeLabel x={tx} y={sy({ x: t.x, y: t.y + full.up }) - 3} mm={full.up} color={roomColor} anchor="middle" />
+          <EdgeLabel x={tx} y={sy({ x: t.x, y: t.y - full.down }) + 9} mm={full.down} color={roomColor} anchor="middle" />
+          <EdgeLabel x={sx({ x: t.x + full.forward, y: t.y }) - 2} y={ty - 4} mm={full.forward} color={roomColor} anchor="end" />
+          <EdgeLabel x={sx({ x: t.x - full.back, y: t.y }) + 2} y={ty - 4} mm={full.back} color={roomColor} anchor="start" />
+        </g>
+      )}
+
       {room && (
         <g>
           <RoomArrow x1={tx} y1={ty} x2={sx({ x: t.x + room.forward, y: t.y })} y2={ty} mm={room.forward} color={roomColor} place="right" />
@@ -81,6 +128,9 @@ export function EnvelopeChart({
         </g>
       )}
 
+      {/* Exact offset from the target to wherever the pointer is. */}
+      {cursor && <CursorReadout t={t} cursor={cursor} sx={sx} sy={sy} tx={tx} ty={ty} />}
+
       {/* target crosshair, haloed so it reads on either fill */}
       <g>
         <line x1={tx - 6} y1={ty} x2={tx + 6} y2={ty} stroke="white" strokeWidth={4} />
@@ -89,6 +139,83 @@ export function EnvelopeChart({
         <line x1={tx} y1={ty - 6} x2={tx} y2={ty + 6} stroke={TARGET} strokeWidth={2} />
       </g>
     </svg>
+  );
+}
+
+/** A faint mm label on the full-range box edge. */
+function EdgeLabel({
+  x,
+  y,
+  mm,
+  color,
+  anchor,
+}: {
+  x: number;
+  y: number;
+  mm: number;
+  color: string;
+  anchor: "start" | "middle" | "end";
+}) {
+  return (
+    <text
+      x={x}
+      y={y}
+      fontSize={8}
+      textAnchor={anchor}
+      fill={color}
+      stroke="white"
+      strokeWidth={2.5}
+      paintOrder="stroke"
+      opacity={0.95}
+    >
+      {mm.toFixed(0)}
+    </text>
+  );
+}
+
+/** Live "how far is this from the target" readout that follows the pointer. */
+function CursorReadout({
+  t,
+  cursor,
+  sx,
+  sy,
+  tx,
+  ty,
+}: {
+  t: Vec2;
+  cursor: Vec2;
+  sx: (p: Vec2) => number;
+  sy: (p: Vec2) => number;
+  tx: number;
+  ty: number;
+}) {
+  const dx = cursor.x - t.x;
+  const dy = cursor.y - t.y;
+  const cx = sx(cursor);
+  const cy = sy(cursor);
+  const label = `${Math.abs(dx).toFixed(0)}mm ${dx >= 0 ? "fwd" : "back"} · ${Math.abs(
+    dy
+  ).toFixed(0)}mm ${dy >= 0 ? "up" : "down"}`;
+  // Flip the label to whichever side keeps it inside the box.
+  const right = cx < W / 2;
+  return (
+    <g pointerEvents="none">
+      <line x1={tx} y1={ty} x2={cx} y2={cy} stroke={TARGET} strokeWidth={1} strokeDasharray="2 2" />
+      <circle cx={cx} cy={cy} r={2.5} fill={TARGET} />
+      <text
+        x={right ? cx + 6 : cx - 6}
+        y={cy - 5}
+        fontSize={8.5}
+        textAnchor={right ? "start" : "end"}
+        fill={TARGET}
+        stroke="white"
+        strokeWidth={2.5}
+        paintOrder="stroke"
+        fontWeight={600}
+      >
+        {label}
+      </text>
+    </g>
   );
 }
 

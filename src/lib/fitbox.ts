@@ -124,6 +124,22 @@ function roomIn(poly: Vec2[], p: Vec2): FitRoom | undefined {
   return { forward, back, up, down };
 }
 
+/**
+ * The region's total extent from `p`, per direction — the bounding box. Unlike
+ * `roomIn`, reaching these needs give on the other axis (more height for a bit
+ * less reach, say), so it's the honest "full movement range".
+ */
+function bboxRoom(poly: Vec2[], p: Vec2): FitRoom {
+  const xs = poly.map((q) => q.x);
+  const ys = poly.map((q) => q.y);
+  return {
+    forward: Math.max(...xs) - p.x,
+    back: p.x - Math.min(...xs),
+    up: Math.max(...ys) - p.y,
+    down: p.y - Math.min(...ys),
+  };
+}
+
 /** The four corners of one stem angle's reachable parallelogram. */
 function cornersForAngle(
   bike: Bike,
@@ -197,6 +213,8 @@ export function buildFitEnvelope(
 
   const room = inCore ? roomIn(core, target.hand) : undefined;
   const roomWarn = inWarn ? roomIn(warn, target.hand) : undefined;
+  const fullRoom = inCore ? bboxRoom(core, target.hand) : undefined;
+  const fullRoomWarn = inWarn ? bboxRoom(warn, target.hand) : undefined;
 
   return {
     handMode: target.handMode,
@@ -210,6 +228,8 @@ export function buildFitEnvelope(
     warnDistance,
     room,
     roomWarn,
+    fullRoom,
+    fullRoomWarn,
     stemCore,
     stemWarn,
     spacerMax,

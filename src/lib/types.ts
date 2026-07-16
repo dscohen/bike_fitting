@@ -211,8 +211,16 @@ export interface FitEnvelope {
   // Distance from the target out to a region's edge, per direction (mm).
   // `room` is against the comfortable region, `roomWarn` the workable one; each
   // is only present when the target is actually inside that region.
+  //
+  // These are STRICT: the ray holds the other axis fixed, so a target sitting
+  // near a pointed corner reports very little room even when the region extends
+  // much further. `fullRoom` is the region's overall extent from the target —
+  // what you can reach if you also give a little on the other axis (e.g. more
+  // height in exchange for slightly less reach).
   room?: FitRoom;
   roomWarn?: FitRoom;
+  fullRoom?: FitRoom;
+  fullRoomWarn?: FitRoom;
   stemCore: [number, number];
   stemWarn: [number, number];
   spacerMax: number;

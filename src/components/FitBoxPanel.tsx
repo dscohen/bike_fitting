@@ -50,6 +50,14 @@ export default function FitBoxPanel({ envelope }: { envelope: FitEnvelope }) {
             <span className="font-medium">{e.room.back.toFixed(0)}mm</span> back,{" "}
             <span className="font-medium">{e.room.up.toFixed(0)}mm</span> up,{" "}
             <span className="font-medium">{e.room.down.toFixed(0)}mm</span> down.
+            {e.fullRoom && (
+              <span className="block text-slate-400 dark:text-slate-500">
+                Holding the other axis fixed — hover the chart for the full range
+                (up to {e.fullRoom.up.toFixed(0)}mm up / {e.fullRoom.forward.toFixed(0)}mm
+                forward if you trade a little on the other axis), and to measure
+                any point from the target.
+              </span>
+            )}
           </>
         ) : e.inWarn ? (
           <>
