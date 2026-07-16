@@ -12,16 +12,22 @@ body {
   margin: 0;
 }
 
-/* SideView drawing ink colors — swapped so frame/stem linework stays visible
-   against a dark canvas instead of near-black-on-near-black. */
+/* Drawing/chart ink — swapped per theme so linework and labels stay legible
+   against a dark canvas instead of near-black-on-near-black (and so text halos
+   match the chart surface rather than being hardcoded white, which glowed in
+   dark mode). */
 :root {
   --sideview-ink: #0f172a;
   --sideview-ink-soft: #334155;
-  --sideview-card: #f8fafc;
+  --chart-surface: #f8fafc; /* label plates + text halos */
+  --chart-muted: #64748b; /* axis / legend text */
+  --chart-dim: #6d28d9; /* dimension labels */
 }
 
 .dark {
   --sideview-ink: #e2e8f0;
   --sideview-ink-soft: #cbd5e1;
-  --sideview-card: #1e293b;
+  --chart-surface: #1e293b;
+  --chart-muted: #94a3b8;
+  --chart-dim: #c4b5fd;
 }

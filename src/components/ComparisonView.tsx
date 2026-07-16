@@ -12,7 +12,14 @@ import SideView from "./SideView";
 import { EnvelopeChart } from "./EnvelopeChart";
 import { FlagList } from "./Flags";
 
-const NO_ADJUST = { dropDelta: 0, reachDelta: 0, saddleHeightDelta: 0 };
+const fmt = (v: number) => `${v > 0 ? "+" : ""}${v}mm`;
+
+const NO_ADJUST = {
+  dropDelta: 0,
+  reachDelta: 0,
+  saddleHeightDelta: 0,
+  setbackDelta: 0,
+};
 
 export default function ComparisonView() {
   const scenarios = useStore((s) => s.scenarios);
@@ -29,6 +36,12 @@ export default function ComparisonView() {
     bikes.map((b) => b.id)
   );
   const [view, setView] = useState<"range" | "diagram">("range");
+  const adjust = active?.adjust ?? NO_ADJUST;
+  const adjusted =
+    adjust.dropDelta !== 0 ||
+    adjust.reachDelta !== 0 ||
+    adjust.saddleHeightDelta !== 0 ||
+    (adjust.setbackDelta ?? 0) !== 0;
 
   const rider = riders.find((r) => r.id === riderId);
 
@@ -77,6 +90,23 @@ export default function ComparisonView() {
           </label>
         ))}
 
+        {adjusted && (
+          <span
+            className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+            title="These comparisons include the Live adjust sliders from the Fit studio"
+          >
+            live adjust:{" "}
+            {[
+              adjust.reachDelta && `reach ${fmt(adjust.reachDelta)}`,
+              adjust.dropDelta && `drop ${fmt(adjust.dropDelta)}`,
+              adjust.setbackDelta && `setback ${fmt(adjust.setbackDelta)}`,
+              adjust.saddleHeightDelta && `saddle ${fmt(adjust.saddleHeightDelta)}`,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        )}
+
         <div className="ml-auto flex overflow-hidden rounded border border-slate-300 dark:border-slate-600">
           {(["range", "diagram"] as const).map((v) => (
             <button
@@ -96,7 +126,9 @@ export default function ComparisonView() {
 
       <div className="grid flex-1 auto-rows-min gap-3 overflow-y-auto md:grid-cols-2 xl:grid-cols-3">
         {shown.map((bike) => {
-          const c = computeScenario(bike, rider, NO_ADJUST, catalog, seatposts);
+          // Honour the live-adjust sliders so the comparison reflects the fit
+          // you've actually dialled in, not just the rider's saved numbers.
+          const c = computeScenario(bike, rider, adjust, catalog, seatposts);
           const best = c.permutations[0];
           const feasible =
             !!best?.feasible &&
@@ -129,7 +161,7 @@ export default function ComparisonView() {
                 reach {bike.reach} · stack {bike.stack} · HTA {bike.headTubeAngle}°
               </div>
 
-              <div className="my-2 h-44">
+              <div className="my-2 h-56">
                 {view === "range" && c.envelope ? (
                   <EnvelopeChart
                     envelope={c.envelope}

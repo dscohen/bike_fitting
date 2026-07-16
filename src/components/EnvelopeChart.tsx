@@ -133,8 +133,8 @@ export function EnvelopeChart({
 
       {/* target crosshair, haloed so it reads on either fill */}
       <g>
-        <line x1={tx - 6} y1={ty} x2={tx + 6} y2={ty} stroke="white" strokeWidth={4} />
-        <line x1={tx} y1={ty - 6} x2={tx} y2={ty + 6} stroke="white" strokeWidth={4} />
+        <line x1={tx - 6} y1={ty} x2={tx + 6} y2={ty} stroke="var(--chart-surface)" strokeWidth={4} />
+        <line x1={tx} y1={ty - 6} x2={tx} y2={ty + 6} stroke="var(--chart-surface)" strokeWidth={4} />
         <line x1={tx - 6} y1={ty} x2={tx + 6} y2={ty} stroke={TARGET} strokeWidth={2} />
         <line x1={tx} y1={ty - 6} x2={tx} y2={ty + 6} stroke={TARGET} strokeWidth={2} />
       </g>
@@ -160,11 +160,11 @@ function EdgeLabel({
     <text
       x={x}
       y={y}
-      fontSize={8}
+      fontSize={10}
       textAnchor={anchor}
       fill={color}
-      stroke="white"
-      strokeWidth={2.5}
+      stroke="var(--chart-surface)"
+      strokeWidth={2}
       paintOrder="stroke"
       opacity={0.95}
     >
@@ -205,11 +205,11 @@ function CursorReadout({
       <text
         x={right ? cx + 6 : cx - 6}
         y={cy - 5}
-        fontSize={8.5}
+        fontSize={10.5}
         textAnchor={right ? "start" : "end"}
         fill={TARGET}
-        stroke="white"
-        strokeWidth={2.5}
+        stroke="var(--chart-surface)"
+        strokeWidth={2}
         paintOrder="stroke"
         fontWeight={600}
       >
@@ -273,11 +273,11 @@ function RoomArrow({
       <text
         x={lx}
         y={ly}
-        fontSize={9}
+        fontSize={11}
         textAnchor={anchor as "start" | "middle" | "end"}
         fill={color}
-        stroke="white"
-        strokeWidth={2.5}
+        stroke="var(--chart-surface)"
+        strokeWidth={2}
         paintOrder="stroke"
         fontWeight={600}
       >

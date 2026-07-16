@@ -22,7 +22,7 @@ const W = 720;
 const H = 560;
 const PAD = 48;
 const DEG = Math.PI / 180;
-const DIM_COLOR = "#7c3aed";
+const DIM_COLOR = "var(--chart-dim)";
 const RIDER_COLOR = "#f97316"; // orange, distinct from frame/dimension ink
 
 interface Props {
@@ -186,11 +186,11 @@ export default function SideView({ bike, target, permutation, saddle, hip }: Pro
 
       {/* BB */}
       <circle cx={sx(BB)} cy={sy(BB)} r={7} fill="var(--sideview-ink)" />
-      <circle cx={sx(BB)} cy={sy(BB)} r={3} fill="var(--sideview-card)" />
-      <text x={sx(BB) + 10} y={sy(BB) + 18} fontSize={11} fill="#64748b">BB</text>
+      <circle cx={sx(BB)} cy={sy(BB)} r={3} fill="var(--chart-surface)" />
+      <text x={sx(BB) + 10} y={sy(BB) + 18} fontSize={12} fill="var(--chart-muted)">BB</text>
 
       {/* legend */}
-      <g fontSize={11} fill="#64748b">
+      <g fontSize={12} fill="var(--chart-muted)">
         <circle cx={PAD} cy={20} r={5} fill="#0ea5e9" />
         <text x={PAD + 10} y={24}>
           {target.handMode === "clamp" ? "clamp (achieved)" : "hoods (achieved)"}
@@ -214,7 +214,7 @@ export default function SideView({ bike, target, permutation, saddle, hip }: Pro
         >
           <rect x={0} y={0} width={92} height={18} rx={9} fill={showRider ? RIDER_COLOR : "#e2e8f0"} />
           <circle cx={showRider ? 82 : 10} cy={9} r={6} fill="white" />
-          <text x={showRider ? 8 : 22} y={13} fontSize={9} fill={showRider ? "white" : "#64748b"}>
+          <text x={showRider ? 8 : 22} y={13} fontSize={10} fill={showRider ? "white" : "var(--chart-muted)"}>
             rider {showRider ? "on" : "off"}
           </text>
         </g>
@@ -302,11 +302,11 @@ function DimLabel({
   dy?: number;
   text: string;
 }) {
-  const w = text.length * 5.5 + 8;
+  const w = text.length * 6.5 + 9;
   return (
     <g transform={`translate(${x + dx},${y + dy})`}>
-      <rect x={-w / 2} y={-7.5} width={w} height={11} rx={2} fill="var(--sideview-card)" opacity={0.85} stroke="none" />
-      <text x={0} y={2} fontSize={9} textAnchor="middle" fill="#6d28d9">
+      <rect x={-w / 2} y={-8.5} width={w} height={13} rx={2} fill="var(--chart-surface)" opacity={0.9} stroke="none" />
+      <text x={0} y={2} fontSize={11} textAnchor="middle" fill="var(--chart-dim)">
         {text}
       </text>
     </g>

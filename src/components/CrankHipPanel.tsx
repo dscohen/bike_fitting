@@ -215,29 +215,29 @@ function IsoChart({
         <polyline points={poly} fill="none" stroke="#0ea5e9" strokeWidth={2} />
 
         {/* endpoints: pure bar-drop (x=0) and pure saddle-back (y=0) */}
-        <circle cx={sx(0)} cy={sy(maxY)} r={4} fill="#7c3aed" />
-        <circle cx={sx(maxX)} cy={sy(0)} r={4} fill="#7c3aed" />
+        <circle cx={sx(0)} cy={sy(maxY)} r={4} fill="var(--chart-dim)" />
+        <circle cx={sx(maxX)} cy={sy(0)} r={4} fill="var(--chart-dim)" />
 
         {/* axis labels */}
-        <text x={(padL + W - padR) / 2} y={H - 8} fontSize={9} textAnchor="middle" fill="#64748b">
+        <text x={(padL + W - padR) / 2} y={H - 8} fontSize={11} textAnchor="middle" fill="var(--chart-muted)">
           saddle {saddleDir} (mm) →
         </text>
         <text
           x={12}
           y={(padT + H - padB) / 2}
-          fontSize={9}
+          fontSize={11}
           textAnchor="middle"
-          fill="#64748b"
+          fill="var(--chart-muted)"
           transform={`rotate(-90 12 ${(padT + H - padB) / 2})`}
         >
           bars {barDir} (mm) →
         </text>
 
         {/* endpoint value labels */}
-        <text x={sx(0) + 6} y={sy(maxY) + 2} fontSize={9} fill="#7c3aed">
+        <text x={sx(0) + 6} y={sy(maxY) + 2} fontSize={10} fill="var(--chart-dim)">
           {maxY.toFixed(0)}mm bars only
         </text>
-        <text x={sx(maxX) - 4} y={sy(0) - 6} fontSize={9} textAnchor="end" fill="#7c3aed">
+        <text x={sx(maxX) - 4} y={sy(0) - 6} fontSize={10} textAnchor="end" fill="var(--chart-dim)">
           {maxX.toFixed(0)}mm saddle only
         </text>
 
