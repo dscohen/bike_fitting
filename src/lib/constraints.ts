@@ -13,6 +13,11 @@ export const CONSTRAINTS = {
   // band is comfortable, the wider band is workable but at the limit.
   fitStemCore: [90, 120] as [number, number],
   fitStemWarn: [80, 130] as [number, number],
+  // Stem angle bands for the same envelope: the core (comfortable) band
+  // excludes a steep +17° riser — that's a stretch option, not a "normal"
+  // stem — while the warn band allows it, same idea as the length bands above.
+  fitAngleCore: [-17, 7] as [number, number],
+  fitAngleWarn: [-17, 17] as [number, number],
   // Height of a stem's steerer clamp when it doesn't specify one. The stem's
   // extension leaves the steerer at half this above the spacers (~typical road
   // stem "stack height" is 40mm).

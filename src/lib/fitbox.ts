@@ -169,11 +169,15 @@ function hullForBand(
   bike: Bike,
   angles: number[],
   lengths: [number, number],
+  angleRange: [number, number],
   spacerMax: number,
   bar: Bar | undefined,
   handMode: "hood" | "clamp"
 ): Vec2[] {
-  const pts = angles.flatMap((a) =>
+  const bandAngles = angles.filter(
+    (a) => a >= angleRange[0] && a <= angleRange[1]
+  );
+  const pts = bandAngles.flatMap((a) =>
     cornersForAngle(bike, a, lengths, spacerMax, bar, handMode)
   );
   return convexHull(pts);
@@ -199,9 +203,11 @@ export function buildFitEnvelope(
   const spacerMax = bike.maxSpacerStack ?? CONSTRAINTS.defaultMaxSpacerStack;
   const stemCore = CONSTRAINTS.fitStemCore;
   const stemWarn = CONSTRAINTS.fitStemWarn;
+  const angleCore = CONSTRAINTS.fitAngleCore;
+  const angleWarn = CONSTRAINTS.fitAngleWarn;
 
-  const core = hullForBand(bike, angles, stemCore, spacerMax, bar, target.handMode);
-  const warn = hullForBand(bike, angles, stemWarn, spacerMax, bar, target.handMode);
+  const core = hullForBand(bike, angles, stemCore, angleCore, spacerMax, bar, target.handMode);
+  const warn = hullForBand(bike, angles, stemWarn, angleWarn, spacerMax, bar, target.handMode);
 
   // Membership is strict — the stem bands are the whole point, so we don't blur
   // them with the solver's match tolerance. The distances let the UI say "3mm

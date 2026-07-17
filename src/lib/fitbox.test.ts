@@ -174,6 +174,22 @@ describe("buildFitEnvelope", () => {
     expect(t.x - e.fullRoom!.back).toBeCloseTo(Math.min(...e.core.map((p) => p.x)), 6);
   });
 
+  it("a +17° riser stem is workable but not comfortable, even at a core-band length", () => {
+    // The riser angle itself is the "extreme" here, not the stem length — 100mm
+    // sits well inside the core length band, but +17° is only allowed in the
+    // warn band, so this hood position should land in the yellow region only.
+    const g = frontEndGeometry(bike, {
+      spacers: 40,
+      stemLength: 100,
+      stemAngle: 17,
+      barReach: bar.reach,
+      barHoodRise: bar.hoodRise,
+    });
+    const e = buildFitEnvelope(bike, target(g.hood), DEFAULT_STEMS, bar)!;
+    expect(e.inCore).toBe(false);
+    expect(e.inWarn).toBe(true);
+  });
+
   it("a wildly far target is outside both regions", () => {
     const e = buildFitEnvelope(bike, target({ x: 900, y: 640 }), DEFAULT_STEMS, bar)!;
     expect(e.inCore).toBe(false);
