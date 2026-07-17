@@ -20,6 +20,13 @@ export const CONSTRAINTS = {
 
   defaultMaxSpacerStack: 70, // mm
   spacerWarn: 60, // mm — approaching the usual limit
+
+  // Two permutations (same stem length + bar) this close in angle and spacer
+  // height are functionally the same cockpit — e.g. a catalog's -6°/-7° stem
+  // pair — so the solver keeps only the better-ranked one instead of cluttering
+  // the results table with near-identical rows.
+  dedupeAngleEpsDeg: 1,
+  dedupeSpacerEpsMm: 5,
 };
 
 export interface FrontEndFlagContext {

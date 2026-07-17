@@ -56,6 +56,28 @@ export function scorePermutation(
   );
 }
 
+/** True if two permutations are close enough in hardware to read as the same combo. */
+function isNearDuplicate(a: Permutation, b: Permutation): boolean {
+  return (
+    (a.bar?.id ?? null) === (b.bar?.id ?? null) &&
+    a.stem.length === b.stem.length &&
+    Math.abs(a.stem.angle - b.stem.angle) <= CONSTRAINTS.dedupeAngleEpsDeg &&
+    Math.abs(a.spacers - b.spacers) <= CONSTRAINTS.dedupeSpacerEpsMm
+  );
+}
+
+// Collapse near-duplicate hardware (e.g. a catalog's -6°/-7° stem pair, or
+// spacer heights 5mm apart on the same stem) so the results table shows one
+// representative per cluster — the best-ranked one, since the list is already
+// sorted — instead of a dozen practically-identical rows.
+function dedupeNearDuplicates(sorted: Permutation[]): Permutation[] {
+  const kept: Permutation[] = [];
+  for (const p of sorted) {
+    if (!kept.some((k) => isNearDuplicate(k, p))) kept.push(p);
+  }
+  return kept;
+}
+
 /** Build the "closest achievable" flag, with a directional hint (fwd/back, hi/lo). */
 function envelopeMissFlag(matchPoint: Vec2, target: Vec2): Flag {
   const dx = matchPoint.x - target.x;
@@ -130,15 +152,16 @@ export function solvePermutations(
   const withinTolerance = all.filter((p) => p.error <= tolerance);
   if (withinTolerance.length > 0) {
     withinTolerance.sort((a, b) => a.score - b.score);
-    return opts.maxResults
-      ? withinTolerance.slice(0, opts.maxResults)
-      : withinTolerance;
+    const deduped = dedupeNearDuplicates(withinTolerance);
+    return opts.maxResults ? deduped.slice(0, opts.maxResults) : deduped;
   }
 
   // Nothing lands within tolerance: the target is outside what any catalog
   // combination can reach. Surface the closest options instead of an empty
   // list, so the UI can explain how far off (and in which direction).
-  const closest = [...all].sort((a, b) => a.error - b.error).slice(0, closestMissCount);
+  const closest = dedupeNearDuplicates(
+    [...all].sort((a, b) => a.error - b.error)
+  ).slice(0, closestMissCount);
   return closest.map((p) => ({
     ...p,
     feasible: false,
