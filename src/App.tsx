@@ -30,6 +30,7 @@ export default function App() {
   const updateRider = useStore((s) => s.updateRider);
   const updateAdjust = useStore((s) => s.updateAdjust);
   const updateScenario = useStore((s) => s.updateScenario);
+  const addScenario = useStore((s) => s.addScenario);
   const importSharedFit = useStore((s) => s.importSharedFit);
 
   // A shared-fit link (#fit=…) drops the fitter's rider + bike into this
@@ -82,11 +83,28 @@ export default function App() {
     ? selectedPermutation(computed.permutations, selectedId)
     : undefined;
 
+  // Jump from a Compare card straight into the Fit studio for that bike: point
+  // the active scenario at it (same as the toolbar's own bike switcher) so the
+  // rider, adjust sliders, and bar constraints carry over unchanged.
+  const openBikeInStudio = (bikeId: string, riderId: string) => {
+    if (active) {
+      updateScenario(active.id, { bikeId, riderId });
+    } else {
+      addScenario({
+        name: "New comparison",
+        riderId,
+        bikeId,
+        adjust: { dropDelta: 0, reachDelta: 0, saddleHeightDelta: 0 },
+      });
+    }
+    setView("studio");
+  };
+
   if (view === "compare") {
     return (
       <div className="flex h-full flex-col bg-slate-100 dark:bg-slate-950">
         <Toolbar view={view} onView={setView} />
-        <ComparisonView />
+        <ComparisonView onOpenBike={openBikeInStudio} />
       </div>
     );
   }

@@ -21,7 +21,13 @@ const NO_ADJUST = {
   setbackDelta: 0,
 };
 
-export default function ComparisonView() {
+interface Props {
+  // Point the Fit studio at this bike (and rider) and switch to it — lets a
+  // fitter go straight from "this one looks best" to dialling it in further.
+  onOpenBike: (bikeId: string, riderId: string) => void;
+}
+
+export default function ComparisonView({ onOpenBike }: Props) {
   const scenarios = useStore((s) => s.scenarios);
   const activeScenarioId = useStore((s) => s.activeScenarioId);
   const bikes = useStore((s) => s.bikes);
@@ -162,7 +168,17 @@ export default function ComparisonView() {
           return (
             <div
               key={bike.id}
-              className={`flex flex-col rounded-lg border bg-white p-3 shadow-sm dark:bg-slate-900 ${
+              role="button"
+              tabIndex={0}
+              onClick={() => onOpenBike(bike.id, rider.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onOpenBike(bike.id, rider.id);
+                }
+              }}
+              title={`Open ${bike.name} in the Fit studio`}
+              className={`group flex cursor-pointer flex-col rounded-lg border bg-white p-3 shadow-sm transition hover:border-sky-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-400 dark:bg-slate-900 dark:hover:border-sky-700 ${
                 feasible
                   ? "border-slate-200 dark:border-slate-700"
                   : "border-red-200 dark:border-red-900"
@@ -172,14 +188,19 @@ export default function ComparisonView() {
                 <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   {bike.name}
                 </h3>
-                <span
-                  className={`text-[10px] font-medium ${
-                    feasible
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-red-600 dark:text-red-400"
-                  }`}
-                >
-                  {feasible ? "feasible" : "check flags"}
+                <span className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-medium text-sky-600 opacity-0 transition group-hover:opacity-100 group-focus:opacity-100 dark:text-sky-400">
+                    open in Fit studio →
+                  </span>
+                  <span
+                    className={`text-[10px] font-medium ${
+                      feasible
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {feasible ? "feasible" : "check flags"}
+                  </span>
                 </span>
               </div>
               <div className="text-[11px] text-slate-500 dark:text-slate-400">
