@@ -194,7 +194,13 @@ export function buildFitEnvelope(
   stems: Stem[],
   barSetup: Bar | undefined
 ): FitEnvelope | undefined {
-  const angles = [...new Set(stems.map((s) => s.angle))].sort((a, b) => a - b);
+  // A bike with a fixed stem angle (integrated cockpit, proprietary stem) only
+  // has that one angle to search, same restriction the solver applies.
+  const bikeStems =
+    bike.fixedStemAngle == null
+      ? stems
+      : stems.filter((s) => s.angle === bike.fixedStemAngle);
+  const angles = [...new Set(bikeStems.map((s) => s.angle))].sort((a, b) => a - b);
   if (angles.length === 0) return undefined;
 
   const bar = target.handMode === "clamp" ? undefined : barSetup;

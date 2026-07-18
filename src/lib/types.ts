@@ -26,6 +26,10 @@ export interface Bike {
   // tube — same convention as RiderFitInput.saddleHeight). Drives the
   // seatpost-insertion sanity check when provided.
   seatTubeLength?: number;
+  // Some bikes (integrated cockpits, proprietary stems) only accept one stem
+  // angle. Opt in by setting this — the solver and fit-range envelope then
+  // only consider catalog stems at exactly this angle, instead of every angle.
+  fixedStemAngle?: number;
   // Free-form notes / metadata:
   notes?: string;
 }

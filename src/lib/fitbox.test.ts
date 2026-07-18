@@ -212,6 +212,26 @@ describe("buildFitEnvelope", () => {
     expect(hoodMaxX - clampMaxX).toBeCloseTo(bar.reach, 6);
   });
 
+  it("a fixed stem angle restricts the envelope to just that angle's parallelogram", () => {
+    const fixedBike: Bike = { ...bike, fixedStemAngle: -6 };
+    const full = buildFitEnvelope(bike, target({ x: 520, y: 640 }), DEFAULT_STEMS, bar)!;
+    const fixed = buildFitEnvelope(fixedBike, target({ x: 520, y: 640 }), DEFAULT_STEMS, bar)!;
+    const area = (poly: Vec2[]) => {
+      let a = 0;
+      for (let i = 0; i < poly.length; i++) {
+        const p = poly[i];
+        const q = poly[(i + 1) % poly.length];
+        a += p.x * q.y - q.x * p.y;
+      }
+      return Math.abs(a) / 2;
+    };
+    // Sweeping every angle in the catalog gives a bigger hull than sweeping
+    // just the one angle the bike is restricted to.
+    expect(area(fixed.core)).toBeLessThan(area(full.core));
+    // A single angle's length x spacer sweep is exactly a 4-corner parallelogram.
+    expect(fixed.core.length).toBeLessThanOrEqual(4);
+  });
+
   it("a bigger spacer allowance widens the reachable region", () => {
     const small = buildFitEnvelope(
       { ...bike, maxSpacerStack: 10 },

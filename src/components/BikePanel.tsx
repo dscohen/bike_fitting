@@ -62,6 +62,14 @@ export default function BikePanel({ bike, onChange }: Props) {
           onChange={(v) => onChange({ seatTubeLength: v })}
           help="BB center to the top of the seat tube, measured along the tube (c-t) — same convention as saddle height. When set, sanity-checks that the seatpost can be inserted deep enough to meet its minimum-insertion mark at the rider's saddle height."
         />
+        <NumberField
+          label="Fixed stem angle (optional)"
+          unit="°"
+          value={bike.fixedStemAngle}
+          placeholder="any"
+          onChange={(v) => onChange({ fixedStemAngle: v })}
+          help="Set this for bikes whose cockpit only accepts one stem angle (integrated cockpits, proprietary stems). The solver and fit-range envelope then only search that angle instead of every angle in the catalog."
+        />
       </div>
     </Section>
   );

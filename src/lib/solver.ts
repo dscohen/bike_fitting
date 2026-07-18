@@ -78,6 +78,12 @@ function dedupeNearDuplicates(sorted: Permutation[]): Permutation[] {
   return kept;
 }
 
+/** Restrict the stem search to a bike's fixed angle, if it has one. */
+function stemsForBike(bike: Bike, stems: Stem[]): Stem[] {
+  if (bike.fixedStemAngle == null) return stems;
+  return stems.filter((s) => s.angle === bike.fixedStemAngle);
+}
+
 /** Build the "closest achievable" flag, with a directional hint (fwd/back, hi/lo). */
 function envelopeMissFlag(matchPoint: Vec2, target: Vec2): Flag {
   const dx = matchPoint.x - target.x;
@@ -113,12 +119,13 @@ export function solvePermutations(
   // loop bars — the permutation is just stem x spacers.
   const barOptions: (Bar | undefined)[] =
     target.handMode === "clamp" ? [undefined] : catalog.bars;
+  const stems = stemsForBike(bike, catalog.stems);
 
   const all: Permutation[] = [];
 
   for (const bar of barOptions) {
     for (const spacers of catalog.spacerStacks) {
-      for (const stem of catalog.stems) {
+      for (const stem of stems) {
         const g = frontEndGeometry(bike, {
           spacers,
           stemLength: stem.length,

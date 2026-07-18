@@ -122,6 +122,24 @@ describe("solvePermutations — closest-miss fallback", () => {
   });
 });
 
+describe("solvePermutations — fixed stem angle", () => {
+  const target: FitTarget = { hand: fe.hood, handMode: "hood", saddle };
+
+  it("only searches stems at the bike's fixed angle", () => {
+    const fixedBike: Bike = { ...bike, fixedStemAngle: -6 };
+    const results = solvePermutations(fixedBike, target, catalog);
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) expect(r.stem.angle).toBe(-6);
+  });
+
+  it("excludes every other angle, even the closer-matching ones", () => {
+    const fixedBike: Bike = { ...bike, fixedStemAngle: 17 };
+    const results = solvePermutations(fixedBike, target, catalog);
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) expect(r.stem.angle).toBe(17);
+  });
+});
+
 describe("scorePermutation", () => {
   const neg: Stem = { id: "n", length: 100, angle: -17 };
   const pos: Stem = { id: "p", length: 100, angle: 17 };
