@@ -197,6 +197,7 @@ export default function App() {
                 target={computed.target}
                 saddle={computed.saddle}
                 seatpostInsertion={computed.seatpostInsertion}
+                permutation={sel}
               />
             )}
             {computed?.envelope && !computed.error && (

@@ -2,6 +2,7 @@
 
 import type {
   FitTarget,
+  Permutation,
   SaddleSolution,
   SeatpostInsertionCheck,
   Seatpost,
@@ -14,10 +15,14 @@ export default function SummaryPanel({
   target,
   saddle,
   seatpostInsertion,
+  permutation,
 }: {
   target: FitTarget;
   saddle?: SaddleSolution;
   seatpostInsertion?: SeatpostInsertionCheck;
+  // The selected combo, so we can show the actual stem/bar clamp position —
+  // it's bar reach behind the hoods, and only known once a combo is picked.
+  permutation?: Permutation;
 }) {
   return (
     <Section title="Fit summary">
@@ -35,6 +40,12 @@ export default function SummaryPanel({
             <Stat label="Nose→hand reach" value={`${computedReach(saddle, target.hand).toFixed(0)} mm`} />
             <Stat label="Saddle→hand drop" value={`${computedDrop(saddle, target.hand).toFixed(0)} mm`} />
           </>
+        )}
+        {saddle && target.handMode === "hood" && permutation && (
+          <Stat
+            label="Nose→bar clamp reach"
+            value={`${computedReach(saddle, permutation.clamp).toFixed(0)} mm`}
+          />
         )}
         <Stat label="Setback to nose" value={`${target.saddle.setbackToNose.toFixed(0)} mm`} />
         <Stat label="Saddle height" value={`${target.saddle.saddleHeight.toFixed(0)} mm`} />
