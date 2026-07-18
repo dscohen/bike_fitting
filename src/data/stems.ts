@@ -5,7 +5,7 @@ import type { Stem } from "../lib/types";
 // These are the sizes/angles that are actually mass-produced.
 
 const LENGTHS = [70, 80, 90, 100, 110, 120, 130, 140];
-const ANGLES = [-17, -7, -6, 6, 7, 17];
+const ANGLES = [-17, -7, -6, 0, 6, 7, 17];
 
 export const DEFAULT_STEMS: Stem[] = LENGTHS.flatMap((length) =>
   ANGLES.map((angle) => ({
