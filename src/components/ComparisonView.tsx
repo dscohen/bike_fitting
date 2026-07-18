@@ -43,6 +43,15 @@ export default function ComparisonView() {
     adjust.saddleHeightDelta !== 0 ||
     (adjust.setbackDelta ?? 0) !== 0;
 
+  const barConstraint = active?.barConstraint;
+  const barConstraintText = [
+    barConstraint?.onlyRidersBar && "rider's bar only",
+    barConstraint?.excludeRisers && "no risers",
+    barConstraint?.lockReach != null && `${barConstraint.lockReach}mm bar locked`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const rider = riders.find((r) => r.id === riderId);
 
   const toggle = (id: string) =>
@@ -107,6 +116,15 @@ export default function ComparisonView() {
           </span>
         )}
 
+        {barConstraintText && (
+          <span
+            className="rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300"
+            title="These comparisons use the Bar search constraints from the Fit studio"
+          >
+            bar search: {barConstraintText}
+          </span>
+        )}
+
         <div className="ml-auto flex overflow-hidden rounded border border-slate-300 dark:border-slate-600">
           {(["range", "diagram"] as const).map((v) => (
             <button
@@ -128,7 +146,14 @@ export default function ComparisonView() {
         {shown.map((bike) => {
           // Honour the live-adjust sliders so the comparison reflects the fit
           // you've actually dialled in, not just the rider's saved numbers.
-          const c = computeScenario(bike, rider, adjust, catalog, seatposts);
+          const c = computeScenario(
+            bike,
+            rider,
+            adjust,
+            catalog,
+            seatposts,
+            active?.barConstraint
+          );
           const best = c.permutations[0];
           const feasible =
             !!best?.feasible &&
