@@ -267,14 +267,20 @@ export function crankTradeoff(input: CrankTradeoffInput): CrankTradeoff {
   const baseline = hipAngleFor(hip, hand, crankCurrent, body);
   if (baseline == null) return empty;
 
-  // Raise the saddle by Δc (hip shifts up/back along the seat-tube axis) to keep
-  // leg extension, and evaluate at the target crank. The bars are FIXED — so the
-  // saddle->bar drop and reach implicitly increase, and those changes feed into
-  // the hip angle (they partially offset the leg-side opening). We do NOT raise
-  // the hand: that would assume the fitter also lifts the cockpit by Δc.
+  // Raise the saddle by Δc to keep leg extension, and evaluate at the target
+  // crank. X (setback) is held fixed here: a seatpost naturally creeps back as
+  // it's raised (it rides along the seat-tube axis), but a fitter re-centers
+  // the saddle on the rails afterward to restore the original BB-relative
+  // setback — they don't just raise the post and leave the new setback in
+  // place. So this is a pure vertical move, same convention the rest of the
+  // app uses for the "Saddle height" control (setback is its own knob). The
+  // bars are FIXED — so the saddle->bar drop implicitly increases (that's
+  // implicitDropMm above), and it feeds into the hip angle (partially
+  // offsetting the leg-side opening). We do NOT raise the hand: that would
+  // assume the fitter also lifts the cockpit by Δc.
   const hipOpened: Vec2 = {
-    x: hip.x - Math.cos(sta) * dc,
-    y: hip.y + Math.sin(sta) * dc,
+    x: hip.x,
+    y: hip.y + implicitDropMm,
   };
   const handOpened: Vec2 = { x: hand.x, y: hand.y };
   const opened = hipAngleFor(hipOpened, handOpened, crankTarget, body);

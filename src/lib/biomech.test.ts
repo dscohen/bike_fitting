@@ -95,7 +95,7 @@ describe("hip angle and crank opening", () => {
     const b = resolveBody({ heightMm: 1780 }, SETBACK, SH, STA, 172.5);
     const hip = hipPt();
     const hipOpened = {
-      x: hip.x - Math.cos(sta) * dc,
+      x: hip.x,
       y: hip.y + Math.sin(sta) * dc,
     };
     const baseline = hipAngleFor(hip, hand, 172.5, b)!;
@@ -175,7 +175,7 @@ describe("crank trade-off restores the baseline hip angle", () => {
     const dc = 172.5 - 155;
     const sta = (STA * Math.PI) / 180;
     const hipOpened = {
-      x: m.hip.x - Math.cos(sta) * dc,
+      x: m.hip.x,
       y: m.hip.y + Math.sin(sta) * dc,
     };
     const handOpened = { x: hand.x, y: hand.y }; // bars fixed through the crank swap
@@ -194,7 +194,7 @@ describe("crank trade-off restores the baseline hip angle", () => {
     const dc = 172.5 - 155;
     const sta = (STA * Math.PI) / 180;
     const hipOpened = {
-      x: m.hip.x - Math.cos(sta) * dc,
+      x: m.hip.x,
       y: m.hip.y + Math.sin(sta) * dc,
     };
     const handOpened = { x: hand.x, y: hand.y }; // bars fixed through the crank swap
@@ -213,7 +213,7 @@ describe("crank trade-off restores the baseline hip angle", () => {
     const dc = 172.5 - 155;
     const sta = (STA * Math.PI) / 180;
     const hipOpened = {
-      x: m.hip.x - Math.cos(sta) * dc,
+      x: m.hip.x,
       y: m.hip.y + Math.sin(sta) * dc,
     };
     const handOpened = { x: hand.x, y: hand.y }; // bars fixed through the crank swap
