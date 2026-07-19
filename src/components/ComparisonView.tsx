@@ -4,7 +4,6 @@
 // the frames are directly comparable at a glance (the cockpit diagram is still
 // available per-bike but auto-fits each frame, which hides that difference).
 
-import { useState, type Dispatch, type SetStateAction } from "react";
 import { useStore } from "../store/useStore";
 import { useSolverCatalog, useSeatposts } from "../store/selectors";
 import { computeScenario } from "../lib/scenario";
@@ -25,30 +24,30 @@ interface Props {
   // Point the Fit studio at this bike (and rider) and switch to it — lets a
   // fitter go straight from "this one looks best" to dialling it in further.
   onOpenBike: (bikeId: string, riderId: string) => void;
-  // Which bikes are hidden from the comparison grid. Lifted up to App so it
-  // survives switching back to the studio and returning — tracking hidden
-  // (rather than shown) ids means a newly added bike is shown by default
-  // without any extra bookkeeping.
-  hiddenBikeIds: Set<string>;
-  onHiddenBikeIdsChange: Dispatch<SetStateAction<Set<string>>>;
 }
 
-export default function ComparisonView({
-  onOpenBike,
-  hiddenBikeIds,
-  onHiddenBikeIdsChange,
-}: Props) {
+// The rest of Compare's own state (hidden bikes, rider, chart mode) lives in
+// the store rather than local component state, so it survives switching back
+// to the studio and returning — the whole point of this component previously
+// resetting to "everything selected" every time.
+export default function ComparisonView({ onOpenBike }: Props) {
   const scenarios = useStore((s) => s.scenarios);
   const activeScenarioId = useStore((s) => s.activeScenarioId);
   const bikes = useStore((s) => s.bikes);
   const riders = useStore((s) => s.riders);
+  const hiddenBikeIds = useStore((s) => s.compareHiddenBikeIds);
+  const toggleCompareBikeHidden = useStore((s) => s.toggleCompareBikeHidden);
+  const setCompareHiddenBikeIds = useStore((s) => s.setCompareHiddenBikeIds);
+  const compareRiderId = useStore((s) => s.compareRiderId);
+  const setCompareRiderId = useStore((s) => s.setCompareRiderId);
+  const view = useStore((s) => s.compareView);
+  const setView = useStore((s) => s.setCompareView);
 
   const catalog = useSolverCatalog();
   const seatposts = useSeatposts();
 
   const active = scenarios.find((s) => s.id === activeScenarioId);
-  const [riderId, setRiderId] = useState(active?.riderId ?? riders[0]?.id);
-  const [view, setView] = useState<"range" | "diagram">("range");
+  const riderId = compareRiderId ?? active?.riderId ?? riders[0]?.id;
   const adjust = active?.adjust ?? NO_ADJUST;
   const adjusted =
     adjust.dropDelta !== 0 ||
@@ -67,15 +66,8 @@ export default function ComparisonView({
 
   const rider = riders.find((r) => r.id === riderId);
 
-  const toggle = (id: string) =>
-    onHiddenBikeIdsChange((cur) => {
-      const next = new Set(cur);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  const selectAll = () => onHiddenBikeIdsChange(new Set());
-  const deselectAll = () => onHiddenBikeIdsChange(new Set(bikes.map((b) => b.id)));
+  const selectAll = () => setCompareHiddenBikeIds([]);
+  const deselectAll = () => setCompareHiddenBikeIds(bikes.map((b) => b.id));
 
   if (!rider) {
     return (
@@ -85,7 +77,7 @@ export default function ComparisonView({
     );
   }
 
-  const shown = bikes.filter((b) => !hiddenBikeIds.has(b.id));
+  const shown = bikes.filter((b) => !hiddenBikeIds.includes(b.id));
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden p-3">
@@ -94,7 +86,7 @@ export default function ComparisonView({
           rider
           <select
             value={riderId}
-            onChange={(e) => setRiderId(e.target.value)}
+            onChange={(e) => setCompareRiderId(e.target.value)}
             className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
           >
             {riders.map((r) => (
@@ -122,8 +114,8 @@ export default function ComparisonView({
           <label key={b.id} className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
             <input
               type="checkbox"
-              checked={!hiddenBikeIds.has(b.id)}
-              onChange={() => toggle(b.id)}
+              checked={!hiddenBikeIds.includes(b.id)}
+              onChange={() => toggleCompareBikeHidden(b.id)}
               className="accent-sky-600"
             />
             {b.name}

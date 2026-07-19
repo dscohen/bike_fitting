@@ -188,14 +188,102 @@ describe("useStore — removeBike", () => {
     ).toBeUndefined();
   });
 
-  it("removes the bike from comparisonBikeIds", async () => {
+  it("removes the bike from compareHiddenBikeIds", async () => {
     const { useStore } = await import("./useStore");
     const bikeId = useStore.getState().addBike(newBike("Comparison-Test Bike"));
-    useStore.getState().toggleComparisonBike(bikeId);
-    expect(useStore.getState().comparisonBikeIds).toContain(bikeId);
+    useStore.getState().toggleCompareBikeHidden(bikeId);
+    expect(useStore.getState().compareHiddenBikeIds).toContain(bikeId);
 
     useStore.getState().removeBike(bikeId);
-    expect(useStore.getState().comparisonBikeIds).not.toContain(bikeId);
+    expect(useStore.getState().compareHiddenBikeIds).not.toContain(bikeId);
+  });
+});
+
+describe("useStore — Compare view session state", () => {
+  it("toggleCompareBikeHidden flips a bike's hidden state", async () => {
+    const { useStore } = await import("./useStore");
+    const bikeId = useStore.getState().bikes[0].id;
+    const before = useStore.getState().compareHiddenBikeIds.includes(bikeId);
+
+    useStore.getState().toggleCompareBikeHidden(bikeId);
+    expect(useStore.getState().compareHiddenBikeIds.includes(bikeId)).toBe(!before);
+
+    useStore.getState().toggleCompareBikeHidden(bikeId);
+    expect(useStore.getState().compareHiddenBikeIds.includes(bikeId)).toBe(before);
+  });
+
+  it("setCompareHiddenBikeIds replaces the whole set (select/deselect all)", async () => {
+    const { useStore } = await import("./useStore");
+    const ids = useStore.getState().bikes.map((b) => b.id);
+
+    useStore.getState().setCompareHiddenBikeIds(ids);
+    expect(useStore.getState().compareHiddenBikeIds).toEqual(ids);
+
+    useStore.getState().setCompareHiddenBikeIds([]);
+    expect(useStore.getState().compareHiddenBikeIds).toEqual([]);
+  });
+
+  it("setCompareRiderId is cleared when that rider is removed", async () => {
+    const { useStore } = await import("./useStore");
+    const riderId = useStore.getState().addRider({
+      name: "Compare-Ref Rider",
+      fit: { saddleHeight: 700 },
+    });
+    useStore.getState().setCompareRiderId(riderId);
+    expect(useStore.getState().compareRiderId).toBe(riderId);
+
+    useStore.getState().removeRider(riderId);
+    expect(useStore.getState().compareRiderId).toBeUndefined();
+  });
+
+  it("setCompareView persists the chart mode", async () => {
+    const { useStore } = await import("./useStore");
+    useStore.getState().setCompareView("diagram");
+    expect(useStore.getState().compareView).toBe("diagram");
+    useStore.getState().setCompareView("range");
+    expect(useStore.getState().compareView).toBe("range");
+  });
+});
+
+describe("useStore — custom stems and seatposts", () => {
+  it("addStem returns the new id and puts the stem in customStems", async () => {
+    const { useStore } = await import("./useStore");
+    const id = useStore.getState().addStem({ length: 105, angle: -8 });
+    expect(typeof id).toBe("string");
+    const stem = useStore.getState().customStems.find((s) => s.id === id);
+    expect(stem).toMatchObject({ length: 105, angle: -8, custom: true });
+  });
+
+  it("removeStem deletes the stem", async () => {
+    const { useStore } = await import("./useStore");
+    const id = useStore.getState().addStem({ length: 105, angle: -8 });
+    useStore.getState().removeStem(id);
+    expect(useStore.getState().customStems.some((s) => s.id === id)).toBe(false);
+  });
+
+  it("addSeatpost returns the new id and puts the post in customSeatposts", async () => {
+    const { useStore } = await import("./useStore");
+    const id = useStore.getState().addSeatpost({
+      name: "Test Post",
+      offset: 10,
+      length: 350,
+      minInsert: 80,
+    });
+    expect(typeof id).toBe("string");
+    const post = useStore.getState().customSeatposts.find((p) => p.id === id);
+    expect(post).toMatchObject({ name: "Test Post", offset: 10, custom: true });
+  });
+
+  it("removeSeatpost deletes the post", async () => {
+    const { useStore } = await import("./useStore");
+    const id = useStore.getState().addSeatpost({
+      name: "Doomed Post",
+      offset: 0,
+      length: 350,
+      minInsert: 80,
+    });
+    useStore.getState().removeSeatpost(id);
+    expect(useStore.getState().customSeatposts.some((p) => p.id === id)).toBe(false);
   });
 });
 

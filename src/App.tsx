@@ -21,9 +21,6 @@ import { Section } from "./components/ui";
 export default function App() {
   const [view, setView] = useState<"studio" | "compare">("studio");
   const [selectedId, setSelectedId] = useState<string | undefined>();
-  // Lifted above ComparisonView so unchecked bikes stay unchecked when you
-  // bounce back to the studio and return to Compare.
-  const [hiddenBikeIds, setHiddenBikeIds] = useState<Set<string>>(new Set());
 
   const scenarios = useStore((s) => s.scenarios);
   const activeScenarioId = useStore((s) => s.activeScenarioId);
@@ -107,11 +104,7 @@ export default function App() {
     return (
       <div className="flex h-full flex-col bg-slate-100 dark:bg-slate-950">
         <Toolbar view={view} onView={setView} />
-        <ComparisonView
-          onOpenBike={openBikeInStudio}
-          hiddenBikeIds={hiddenBikeIds}
-          onHiddenBikeIdsChange={setHiddenBikeIds}
-        />
+        <ComparisonView onOpenBike={openBikeInStudio} />
       </div>
     );
   }
@@ -125,9 +118,15 @@ export default function App() {
           Create or select a scenario to begin.
         </div>
       ) : (
-        <main className="grid flex-1 grid-cols-[320px_1fr_360px] gap-3 overflow-hidden p-3">
-          {/* Left: inputs */}
-          <div className="flex flex-col gap-3 overflow-y-auto">
+        <main className="grid flex-1 grid-cols-1 gap-3 overflow-y-auto p-3 lg:grid-cols-[320px_1fr_360px] lg:overflow-hidden">
+          {/* Left: inputs. overflow-y-auto is lg-only: on a flex/grid item,
+              non-visible overflow zeroes its automatic minimum size, which
+              collapses an auto-sized grid row to near-nothing when this
+              column isn't the row filling the whole grid (i.e. once we're
+              stacked to one column below lg) — so only opt into the
+              independent-scroll-pane behavior once the 3-column layout
+              actually needs it. */}
+          <div className="flex flex-col gap-3 lg:overflow-y-auto">
             <RiderPanel
               rider={rider}
               bars={bars}
@@ -178,8 +177,10 @@ export default function App() {
             />
           </div>
 
-          {/* Center: drawing */}
-          <div className="flex min-h-0 flex-col gap-3">
+          {/* Center: drawing. Fixed height when stacked on narrow screens (a
+              flex-1 child can't grow inside an unbounded-height column); the
+              3-pane grid row bounds it instead at lg: and up. */}
+          <div className="flex h-[70vh] min-h-[360px] flex-col gap-3 lg:h-auto lg:min-h-0">
             <div className="flex-1 rounded-lg border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900">
               {computed?.error ? (
                 <div className="flex h-full items-center justify-center p-4 text-center text-sm text-red-600 dark:text-red-400">
@@ -197,8 +198,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right: results */}
-          <div className="flex flex-col gap-3 overflow-y-auto">
+          {/* Right: results (see the left column's comment re overflow-y-auto). */}
+          <div className="flex flex-col gap-3 lg:overflow-y-auto">
             {computed?.target && (
               <SummaryPanel
                 target={computed.target}

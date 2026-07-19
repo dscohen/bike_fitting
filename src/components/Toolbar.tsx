@@ -221,7 +221,7 @@ export default function Toolbar({ view, onView }: Props) {
         </Button>
       )}
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex flex-wrap items-center gap-2">
         <div className="flex overflow-hidden rounded border border-slate-300 dark:border-slate-600">
           <button
             onClick={() => onView("studio")}

@@ -38,7 +38,11 @@ export interface AppData {
   customSeatposts: Seatpost[];
   scenarios: Scenario[];
   activeScenarioId?: string;
-  comparisonBikeIds: string[]; // bikes pinned into the comparison view
+  // Comparison view's own session state, kept separate from any scenario so
+  // it survives switching back to the studio and returning.
+  compareHiddenBikeIds: string[]; // bikes unchecked in the comparison view
+  compareRiderId?: string; // last-selected rider in the comparison view
+  compareView: "range" | "diagram"; // last-selected chart mode in the comparison view
 }
 
 export interface AppState extends AppData {
@@ -52,10 +56,12 @@ export interface AppState extends AppData {
   updateRider: (id: string, patch: Partial<Rider>) => void;
   removeRider: (id: string) => void;
   // Custom parts
-  addStem: (stem: Omit<Stem, "id">) => void;
+  addStem: (stem: Omit<Stem, "id">) => string;
+  removeStem: (id: string) => void;
   addBar: (bar: Omit<Bar, "id">) => string;
   removeBar: (id: string) => void;
-  addSeatpost: (post: Omit<Seatpost, "id">) => void;
+  addSeatpost: (post: Omit<Seatpost, "id">) => string;
+  removeSeatpost: (id: string) => void;
   // Scenarios
   addScenario: (s: Omit<Scenario, "id">) => string;
   updateScenario: (id: string, patch: Partial<Scenario>) => void;
@@ -63,7 +69,10 @@ export interface AppState extends AppData {
   setActiveScenario: (id: string | undefined) => void;
   updateAdjust: (id: string, patch: Partial<Scenario["adjust"]>) => void;
   // Comparison
-  toggleComparisonBike: (bikeId: string) => void;
+  toggleCompareBikeHidden: (bikeId: string) => void;
+  setCompareHiddenBikeIds: (ids: string[]) => void;
+  setCompareRiderId: (id: string | undefined) => void;
+  setCompareView: (view: "range" | "diagram") => void;
   // Persistence
   exportJSON: () => string;
   importJSON: (json: string) => void;
@@ -124,7 +133,8 @@ const initialData: AppData = {
     },
   ],
   activeScenarioId: "seed-scenario-1",
-  comparisonBikeIds: [],
+  compareHiddenBikeIds: [],
+  compareView: "range",
 };
 
 export const useStore = create<AppState>()(
@@ -159,7 +169,7 @@ export const useStore = create<AppState>()(
         set((s) => ({
           bikes: s.bikes.filter((b) => b.id !== id),
           scenarios: s.scenarios.filter((sc) => sc.bikeId !== id),
-          comparisonBikeIds: s.comparisonBikeIds.filter((b) => b !== id),
+          compareHiddenBikeIds: s.compareHiddenBikeIds.filter((b) => b !== id),
         })),
 
       addRider: (rider) => {
@@ -177,11 +187,19 @@ export const useStore = create<AppState>()(
         set((s) => ({
           riders: s.riders.filter((r) => r.id !== id),
           scenarios: s.scenarios.filter((sc) => sc.riderId !== id),
+          compareRiderId: s.compareRiderId === id ? undefined : s.compareRiderId,
         })),
 
-      addStem: (stem) =>
+      addStem: (stem) => {
+        const id = uid();
         set((s) => ({
-          customStems: [...s.customStems, { ...stem, id: uid(), custom: true }],
+          customStems: [...s.customStems, { ...stem, id, custom: true }],
+        }));
+        return id;
+      },
+      removeStem: (id) =>
+        set((s) => ({
+          customStems: s.customStems.filter((st) => st.id !== id),
         })),
       addBar: (bar) => {
         const id = uid();
@@ -198,12 +216,16 @@ export const useStore = create<AppState>()(
             r.currentBarId === id ? { ...r, currentBarId: undefined } : r
           ),
         })),
-      addSeatpost: (post) =>
+      addSeatpost: (post) => {
+        const id = uid();
         set((s) => ({
-          customSeatposts: [
-            ...s.customSeatposts,
-            { ...post, id: uid(), custom: true },
-          ],
+          customSeatposts: [...s.customSeatposts, { ...post, id, custom: true }],
+        }));
+        return id;
+      },
+      removeSeatpost: (id) =>
+        set((s) => ({
+          customSeatposts: s.customSeatposts.filter((p) => p.id !== id),
         })),
 
       addScenario: (sc) => {
@@ -234,12 +256,15 @@ export const useStore = create<AppState>()(
           ),
         })),
 
-      toggleComparisonBike: (bikeId) =>
+      toggleCompareBikeHidden: (bikeId) =>
         set((s) => ({
-          comparisonBikeIds: s.comparisonBikeIds.includes(bikeId)
-            ? s.comparisonBikeIds.filter((b) => b !== bikeId)
-            : [...s.comparisonBikeIds, bikeId],
+          compareHiddenBikeIds: s.compareHiddenBikeIds.includes(bikeId)
+            ? s.compareHiddenBikeIds.filter((b) => b !== bikeId)
+            : [...s.compareHiddenBikeIds, bikeId],
         })),
+      setCompareHiddenBikeIds: (ids) => set({ compareHiddenBikeIds: ids }),
+      setCompareRiderId: (id) => set({ compareRiderId: id }),
+      setCompareView: (view) => set({ compareView: view }),
 
       exportJSON: () => {
         const {
@@ -278,7 +303,9 @@ export const useStore = create<AppState>()(
           customSeatposts: d.customSeatposts ?? [],
           scenarios: d.scenarios ?? [],
           activeScenarioId: (d.scenarios ?? [])[0]?.id,
-          comparisonBikeIds: [],
+          compareHiddenBikeIds: [],
+          compareRiderId: undefined,
+          compareView: "range",
         });
       },
       importSharedFit: (fit) => {
