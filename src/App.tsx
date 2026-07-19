@@ -21,6 +21,9 @@ import { Section } from "./components/ui";
 export default function App() {
   const [view, setView] = useState<"studio" | "compare">("studio");
   const [selectedId, setSelectedId] = useState<string | undefined>();
+  // Lifted above ComparisonView so unchecked bikes stay unchecked when you
+  // bounce back to the studio and return to Compare.
+  const [hiddenBikeIds, setHiddenBikeIds] = useState<Set<string>>(new Set());
 
   const scenarios = useStore((s) => s.scenarios);
   const activeScenarioId = useStore((s) => s.activeScenarioId);
@@ -104,7 +107,11 @@ export default function App() {
     return (
       <div className="flex h-full flex-col bg-slate-100 dark:bg-slate-950">
         <Toolbar view={view} onView={setView} />
-        <ComparisonView onOpenBike={openBikeInStudio} />
+        <ComparisonView
+          onOpenBike={openBikeInStudio}
+          hiddenBikeIds={hiddenBikeIds}
+          onHiddenBikeIdsChange={setHiddenBikeIds}
+        />
       </div>
     );
   }

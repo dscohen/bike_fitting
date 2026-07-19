@@ -4,7 +4,7 @@
 // the frames are directly comparable at a glance (the cockpit diagram is still
 // available per-bike but auto-fits each frame, which hides that difference).
 
-import { useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { useStore } from "../store/useStore";
 import { useSolverCatalog, useSeatposts } from "../store/selectors";
 import { computeScenario } from "../lib/scenario";
@@ -25,9 +25,19 @@ interface Props {
   // Point the Fit studio at this bike (and rider) and switch to it — lets a
   // fitter go straight from "this one looks best" to dialling it in further.
   onOpenBike: (bikeId: string, riderId: string) => void;
+  // Which bikes are hidden from the comparison grid. Lifted up to App so it
+  // survives switching back to the studio and returning — tracking hidden
+  // (rather than shown) ids means a newly added bike is shown by default
+  // without any extra bookkeeping.
+  hiddenBikeIds: Set<string>;
+  onHiddenBikeIdsChange: Dispatch<SetStateAction<Set<string>>>;
 }
 
-export default function ComparisonView({ onOpenBike }: Props) {
+export default function ComparisonView({
+  onOpenBike,
+  hiddenBikeIds,
+  onHiddenBikeIdsChange,
+}: Props) {
   const scenarios = useStore((s) => s.scenarios);
   const activeScenarioId = useStore((s) => s.activeScenarioId);
   const bikes = useStore((s) => s.bikes);
@@ -38,9 +48,6 @@ export default function ComparisonView({ onOpenBike }: Props) {
 
   const active = scenarios.find((s) => s.id === activeScenarioId);
   const [riderId, setRiderId] = useState(active?.riderId ?? riders[0]?.id);
-  const [selectedBikes, setSelectedBikes] = useState<string[]>(
-    bikes.map((b) => b.id)
-  );
   const [view, setView] = useState<"range" | "diagram">("range");
   const adjust = active?.adjust ?? NO_ADJUST;
   const adjusted =
@@ -61,9 +68,14 @@ export default function ComparisonView({ onOpenBike }: Props) {
   const rider = riders.find((r) => r.id === riderId);
 
   const toggle = (id: string) =>
-    setSelectedBikes((cur) =>
-      cur.includes(id) ? cur.filter((b) => b !== id) : [...cur, id]
-    );
+    onHiddenBikeIdsChange((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const selectAll = () => onHiddenBikeIdsChange(new Set());
+  const deselectAll = () => onHiddenBikeIdsChange(new Set(bikes.map((b) => b.id)));
 
   if (!rider) {
     return (
@@ -73,7 +85,7 @@ export default function ComparisonView({ onOpenBike }: Props) {
     );
   }
 
-  const shown = bikes.filter((b) => selectedBikes.includes(b.id));
+  const shown = bikes.filter((b) => !hiddenBikeIds.has(b.id));
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden p-3">
@@ -93,11 +105,24 @@ export default function ComparisonView({ onOpenBike }: Props) {
           </select>
         </label>
         <span className="text-xs text-slate-400 dark:text-slate-500">show:</span>
+        <button
+          onClick={selectAll}
+          className="text-[10px] text-sky-600 hover:underline dark:text-sky-400"
+        >
+          all
+        </button>
+        <span className="text-[10px] text-slate-300 dark:text-slate-600">/</span>
+        <button
+          onClick={deselectAll}
+          className="text-[10px] text-sky-600 hover:underline dark:text-sky-400"
+        >
+          none
+        </button>
         {bikes.map((b) => (
           <label key={b.id} className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
             <input
               type="checkbox"
-              checked={selectedBikes.includes(b.id)}
+              checked={!hiddenBikeIds.has(b.id)}
               onChange={() => toggle(b.id)}
               className="accent-sky-600"
             />
